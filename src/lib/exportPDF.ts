@@ -447,7 +447,7 @@ export async function exportToPDF(
       if (items.length > 0) {
         // Calculate actual height needed with text wrapping
         const wrappedItems = items.slice(0, 5).map(item => {
-          const text = `→  ${stripMarkdown(item)}`;
+          const text = `!  ${stripMarkdown(item)}`;
           return doc.splitTextToSize(text, contentWidth - 15);
         });
         const totalLines = wrappedItems.reduce((sum, lines) => sum + lines.length, 0);
@@ -501,7 +501,7 @@ export async function exportToPDF(
       setColor(colors.violet);
       doc.setFontSize(7);
       doc.setFont('helvetica', 'bold');
-      doc.text('★ PRIORITY ACTIONS', margin, y);
+      doc.text('& PRIORITY ACTIONS', margin, y);
       y += 5;
       setColor(colors.slate);
       doc.setFontSize(8);

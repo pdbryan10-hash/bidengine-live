@@ -103,12 +103,12 @@ export default function BidGatePage() {
       const weaknesses2 = analysis.executiveSummary?.keyWeaknesses || analysis.executiveSummary?.criticalGaps || [];
       if (strengths2.length > 0) {
         heading('Key Strengths', 11);
-        strengths2.slice(0,4).forEach((s: string) => { doc.setFontSize(9); doc.setTextColor(52,211,153); doc.text('✓', margin, y); wrap(s, margin + 6); });
+        strengths2.slice(0,4).forEach((s: string) => { doc.setFontSize(9); doc.setTextColor(52,211,153); doc.text('+', margin, y); wrap(s, margin + 6); });
         nl(2);
       }
       if (weaknesses2.length > 0) {
         heading('Key Weaknesses', 11);
-        weaknesses2.slice(0,4).forEach((w: any) => { const t = typeof w === 'string' ? w : w.area || w.gap || ''; doc.setFontSize(9); doc.setTextColor(248,113,113); doc.text('✗', margin, y); wrap(t, margin + 6); });
+        weaknesses2.slice(0,4).forEach((w: any) => { const t = typeof w === 'string' ? w : w.area || w.gap || ''; doc.setFontSize(9); doc.setTextColor(248,113,113); doc.text('x', margin, y); wrap(t, margin + 6); });
         nl(2);
       }
       divider();
