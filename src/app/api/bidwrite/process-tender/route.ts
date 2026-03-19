@@ -4,7 +4,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { callClaude, rateLimitDelay, logRateLimitStatus, estimateTokens } from '@/lib/claude';
 
 // Vercel Pro allows up to 300 seconds, Hobby is 10 seconds
-export const maxDuration = 60;
 
 const BUBBLE_API_URL = 'https://bidenginev1.bubbleapps.io/version-test/api/1.1/obj';
 const BUBBLE_API_KEY = process.env.BUBBLE_API_KEY || '33cb561a966f59ad7ea5e29a1906bf36';

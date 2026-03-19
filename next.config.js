@@ -1,7 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  serverExternalPackages: ['pdf-parse', 'mammoth'],
+  experimental: {
+    serverComponentsExternalPackages: ['pdf-parse', 'mammoth'],
+  },
   async headers() {
     return [
       {
