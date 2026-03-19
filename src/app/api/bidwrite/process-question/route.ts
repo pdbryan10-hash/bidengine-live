@@ -1,3 +1,5 @@
+export const maxDuration = 180;
+
 import { NextRequest, NextResponse } from 'next/server';
 import { callClaude, rateLimitDelay, logRateLimitStatus, estimateTokens } from '@/lib/claude';
 import { 
