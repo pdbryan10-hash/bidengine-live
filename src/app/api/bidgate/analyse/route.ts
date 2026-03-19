@@ -292,10 +292,32 @@ Rules:
       } catch { /* non-fatal */ }
     }
 
+    // ── 5. Save to BidGate_Analysis in Bubble (non-fatal) ───────────────
+    const savedName = analysis.tenderProfile?.opportunityName || tenderName || file.name;
+    const savedDecision = analysis.recommendation?.decision || null;
+    const savedScore = typeof analysis.readinessScore === 'number' ? analysis.readinessScore : (analysis.readinessScore?.overall ?? null);
+    const savedWinProb = analysis.competitivePosition?.winProbability || analysis.executiveSummary?.winProbability || null;
+    try {
+      await fetch(`${BUBBLE_BASE}/BidGate_Analysis`, {
+        method: 'POST',
+        headers: { ...bh, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          client_id: clientId,
+          tender_name: savedName,
+          buyer_name: buyerName || null,
+          buyer_org_type: buyerOrgType || null,
+          decision: savedDecision,
+          readiness_score: savedScore,
+          win_probability: savedWinProb,
+          analysis_json: JSON.stringify(analysis),
+        }),
+      });
+    } catch { /* non-fatal — table may not exist yet */ }
+
     return NextResponse.json({
       success: true,
       analysis,
-      tender_name: analysis.tenderProfile?.opportunityName || tenderName || file.name,
+      tender_name: savedName,
       evidence_counts: evidenceCounts,
       total_evidence: totalEvidence,
       bidlearn: bidlearnContext,
