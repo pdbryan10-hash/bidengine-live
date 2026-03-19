@@ -1,13 +1,13 @@
 'use client';
 
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowLeft, Shield, AlertTriangle, CheckCircle, XCircle,
   FileText, RefreshCw, Target, Zap, Calendar, Building2,
-  PoundSterling, Clock, Printer, ArrowRight, Ban, TrendingUp, 
-  Database, BarChart3, Scale, Award
+  PoundSterling, Clock, Printer, ArrowRight, Ban, TrendingUp,
+  Database, BarChart3, Scale, Award, Download
 } from 'lucide-react';
 import Image from 'next/image';
 import { UserButton } from '@clerk/nextjs';
@@ -28,6 +28,115 @@ export default function BidGatePage() {
   const [buyerOrgType, setBuyerOrgType] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<string>('decision');
+  const [downloading, setDownloading] = useState(false);
+
+  const downloadPDF = useCallback(async () => {
+    if (!analysis) return;
+    setDownloading(true);
+    try {
+      const { jsPDF } = await import('jspdf');
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const W = 210; const margin = 16; const colW = W - margin * 2;
+      let y = 16;
+      const nl = (h = 6) => { y += h; if (y > 270) { doc.addPage(); doc.setFillColor(10, 10, 10); doc.rect(0, 0, 210, 297, 'F'); y = 16; } };
+      const heading = (text: string, size = 13) => { doc.setFontSize(size); doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'bold'); doc.text(text, margin, y); nl(size * 0.5); };
+      const sub = (text: string) => { doc.setFontSize(9); doc.setTextColor(180, 180, 180); doc.setFont('helvetica', 'normal'); doc.text(text, margin, y); nl(5); };
+      const pill = (label: string, value: string, color: [number,number,number]) => {
+        doc.setFillColor(...color); doc.roundedRect(margin, y - 4, colW, 10, 2, 2, 'F');
+        doc.setFontSize(9); doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.text(label, margin + 3, y + 2);
+        doc.setFont('helvetica','normal'); doc.text(value, margin + 45, y + 2); nl(12);
+      };
+      const wrap = (text: string, indent = margin) => {
+        doc.setFontSize(9); doc.setTextColor(210, 210, 210); doc.setFont('helvetica','normal');
+        const lines = doc.splitTextToSize(text, colW - (indent - margin));
+        doc.text(lines, indent, y); nl(lines.length * 5);
+      };
+      const divider = () => { doc.setDrawColor(50,50,50); doc.line(margin, y, W - margin, y); nl(4); };
+
+      // Background
+      doc.setFillColor(10, 10, 10); doc.rect(0, 0, 210, 297, 'F');
+
+      // Header
+      doc.setFillColor(20, 20, 20); doc.rect(0, 0, 210, 28, 'F');
+      doc.setFontSize(18); doc.setTextColor(255,255,255); doc.setFont('helvetica','bold');
+      doc.text('BidGate', margin, 12);
+      doc.setFontSize(8); doc.setTextColor(245,158,11); doc.setFont('helvetica','normal');
+      doc.text('GO / NO-GO ANALYSIS', margin, 18);
+      doc.setFontSize(9); doc.setTextColor(150,150,150);
+      doc.text(new Date().toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'}), W - margin, 12, {align:'right'});
+      y = 36;
+
+      // Tender info
+      const tp = analysis.tenderProfile || analysis.tenderSummary || {};
+      heading(tp.opportunityName || tp.contractTitle || tenderName, 14);
+      if (tp.buyerOrganisation || buyerName) sub((tp.buyerOrganisation || buyerName || '') + (tp.buyerType || buyerOrgType ? ` · ${tp.buyerType || buyerOrgType}` : ''));
+      nl(2); divider();
+
+      // Decision
+      const rawScore2 = analysis.readinessScore?.overall ?? analysis.readinessScore?.score ?? analysis.readinessScore ?? 0;
+      const score = typeof rawScore2 === 'number' ? rawScore2 : parseFloat(rawScore2) || 0;
+      const compliance = analysis.mandatoryRequirements?.overallStatus?.toLowerCase() || 'risk';
+      const aiDec = analysis.recommendation?.decision;
+      const decLabel = aiDec === 'BID' || score >= 7 ? 'GO' : aiDec === 'NO BID' || score < 4 ? 'NO-GO' : 'CONDITIONAL GO';
+      const decColor: [number,number,number] = decLabel === 'GO' ? [16,185,129] : decLabel === 'NO-GO' ? [239,68,68] : [245,158,11];
+      doc.setFillColor(...decColor); doc.roundedRect(margin, y - 1, colW, 14, 3, 3, 'F');
+      doc.setFontSize(14); doc.setTextColor(255,255,255); doc.setFont('helvetica','bold');
+      doc.text(`Recommendation: ${decLabel}`, W / 2, y + 8, {align:'center'}); nl(18);
+
+      // Scores row
+      const boxes = [['Readiness',`${score.toFixed(1)}/10`],['Compliance',compliance==='pass'||compliance==='met'?'Clear':'At Risk'],['Win Probability',analysis.competitivePosition?.winProbability||'—']];
+      const bw = colW / 3 - 2;
+      boxes.forEach(([lbl,val],i) => {
+        const bx = margin + i * (bw + 3);
+        doc.setFillColor(25,25,25); doc.roundedRect(bx, y, bw, 14, 2, 2, 'F');
+        doc.setDrawColor(50,50,50); doc.roundedRect(bx, y, bw, 14, 2, 2, 'S');
+        doc.setFontSize(7); doc.setTextColor(130,130,130); doc.setFont('helvetica','normal'); doc.text(lbl.toUpperCase(), bx + bw/2, y + 5, {align:'center'});
+        doc.setFontSize(10); doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.text(String(val), bx + bw/2, y + 11, {align:'center'});
+      });
+      nl(20);
+
+      if (analysis.recommendation?.headline) { wrap(analysis.recommendation.headline); nl(2); }
+      divider();
+
+      // Strengths / Weaknesses
+      const strengths2 = analysis.executiveSummary?.keyStrengths || [];
+      const weaknesses2 = analysis.executiveSummary?.keyWeaknesses || analysis.executiveSummary?.criticalGaps || [];
+      if (strengths2.length > 0) {
+        heading('Key Strengths', 11);
+        strengths2.slice(0,4).forEach((s: string) => { doc.setFontSize(9); doc.setTextColor(52,211,153); doc.text('✓', margin, y); wrap(s, margin + 6); });
+        nl(2);
+      }
+      if (weaknesses2.length > 0) {
+        heading('Key Weaknesses', 11);
+        weaknesses2.slice(0,4).forEach((w: any) => { const t = typeof w === 'string' ? w : w.area || w.gap || ''; doc.setFontSize(9); doc.setTextColor(248,113,113); doc.text('✗', margin, y); wrap(t, margin + 6); });
+        nl(2);
+      }
+      divider();
+
+      // Next Steps
+      const nextSteps2 = analysis.nextSteps || [];
+      if (nextSteps2.length > 0) {
+        heading('Recommended Next Steps', 11);
+        nextSteps2.slice(0,5).forEach((step: any, i: number) => {
+          const t = typeof step === 'string' ? step : (step.action || step.step || '');
+          doc.setFontSize(9); doc.setTextColor(100,200,255); doc.setFont('helvetica','bold'); doc.text(`${i+1}.`, margin, y);
+          wrap(t, margin + 6);
+        });
+        nl(2);
+      }
+
+      // Evidence gaps
+      const gaps = analysis.evidenceAnalysis?.gapAreas || analysis.evidenceGaps?.gaps || analysis.executiveSummary?.criticalGaps || [];
+      if (gaps.length > 0) {
+        divider(); heading('Evidence Gaps', 11);
+        gaps.slice(0,6).forEach((g: any) => { const t = typeof g === 'string' ? g : (g.area || g.gap || ''); wrap(`• ${t}`); });
+      }
+
+      doc.save(`BidGate-${(tenderName || 'analysis').replace(/[^a-z0-9]/gi,'_')}.pdf`);
+    } finally {
+      setDownloading(false);
+    }
+  }, [analysis, tenderName, buyerName, buyerOrgType]);
 
   useEffect(() => {
     const storedResult = sessionStorage.getItem('bidgate_result');
@@ -173,8 +282,8 @@ export default function BidGatePage() {
           <div className="flex items-center gap-3">
             <ClientBadge clientId={clientId} compact />
             <div className="h-5 w-px bg-white/10" />
-            <button onClick={() => window.print()} className="flex items-center gap-2 px-3 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-sm text-gray-300">
-              <Printer size={16} /> Print
+            <button onClick={downloadPDF} disabled={downloading} className="flex items-center gap-2 px-3 py-2 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 rounded-lg text-sm text-amber-400 disabled:opacity-50">
+              <Download size={16} /> {downloading ? 'Generating...' : 'Download PDF'}
             </button>
             <button onClick={() => router.push(`/v/${clientId}`)} className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-sm text-gray-300">← Dashboard</button>
             <UserButton afterSignOutUrl="/" />

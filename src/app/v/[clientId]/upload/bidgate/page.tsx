@@ -241,16 +241,16 @@ export default function BidGateUploadPage() {
             <select
               value={buyerOrgType}
               onChange={e => setBuyerOrgType(e.target.value)}
-              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl focus:outline-none focus:border-amber-500/50 transition-colors text-white"
+              className="w-full px-4 py-3 bg-[#1a1a1a] border border-white/10 rounded-xl focus:outline-none focus:border-amber-500/50 transition-colors text-white"
             >
-              <option value="">Select type...</option>
-              <option value="Local Authority">Local Authority</option>
-              <option value="NHS">NHS</option>
-              <option value="Central Government">Central Government</option>
-              <option value="Housing Association">Housing Association</option>
-              <option value="Education">Education</option>
-              <option value="Police/Fire">Police / Fire</option>
-              <option value="Other Public Sector">Other Public Sector</option>
+              <option value="" className="bg-[#1a1a1a] text-gray-400">Select type...</option>
+              <option value="Local Authority" className="bg-[#1a1a1a] text-white">Local Authority</option>
+              <option value="NHS" className="bg-[#1a1a1a] text-white">NHS</option>
+              <option value="Central Government" className="bg-[#1a1a1a] text-white">Central Government</option>
+              <option value="Housing Association" className="bg-[#1a1a1a] text-white">Housing Association</option>
+              <option value="Education" className="bg-[#1a1a1a] text-white">Education</option>
+              <option value="Police/Fire" className="bg-[#1a1a1a] text-white">Police / Fire</option>
+              <option value="Other Public Sector" className="bg-[#1a1a1a] text-white">Other Public Sector</option>
             </select>
           </div>
         </motion.div>
