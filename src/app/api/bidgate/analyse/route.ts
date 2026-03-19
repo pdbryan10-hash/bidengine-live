@@ -6,9 +6,12 @@ import pdfParse from 'pdf-parse';
 import Anthropic from '@anthropic-ai/sdk';
 
 const BUBBLE_BASE = 'https://bidenginev1.bubbleapps.io/version-test/api/1.1/obj';
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 export async function POST(request: NextRequest) {
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return NextResponse.json({ error: 'ANTHROPIC_API_KEY not configured' }, { status: 500 });
+  }
+  const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
   try {
     const formData = await request.formData();
     const file = formData.get('file') as File;
@@ -291,7 +294,8 @@ Rules:
     });
 
   } catch (error) {
-    console.error('BidGate API error:', error);
-    return NextResponse.json({ error: 'Failed to analyse tender', details: String(error) }, { status: 500 });
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error('BidGate API error:', msg);
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
