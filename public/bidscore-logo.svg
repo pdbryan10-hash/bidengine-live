@@ -1,0 +1,156 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 350" width="300" height="350">
+  <defs>
+    <!-- Gradients -->
+    <linearGradient id="scoreBodyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a3a2a"/>
+      <stop offset="100%" style="stop-color:#0a2a1a"/>
+    </linearGradient>
+    <linearGradient id="barGrad" x1="0%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" style="stop-color:#059669"/>
+      <stop offset="100%" style="stop-color:#10b981"/>
+    </linearGradient>
+    
+    <!-- Glow filters -->
+    <filter id="glowGreen" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="8" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="glowGreenStrong" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="12" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="softGlowG" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    
+    <style>
+      @keyframes floatS {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-8px); }
+      }
+      @keyframes ringSpin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+      @keyframes barPulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.7; }
+      }
+      @keyframes numberGlow {
+        0%, 100% { filter: url(#glowGreen); }
+        50% { filter: url(#glowGreenStrong); }
+      }
+      .float-score { animation: floatS 4s ease-in-out infinite; }
+      .ring-spin { animation: ringSpin 4s linear infinite; transform-origin: center center; }
+      .bar-pulse { animation: barPulse 2s ease-in-out infinite; }
+    </style>
+  </defs>
+  
+  <!-- Background glow -->
+  <ellipse cx="150" cy="150" rx="85" ry="95" fill="#10b981" opacity="0.1" filter="url(#glowGreenStrong)"/>
+  
+  <!-- Spinning measurement ring -->
+  <g class="ring-spin" style="transform-origin: 150px 150px;">
+    <circle cx="150" cy="150" r="100" fill="none" stroke="#10b981" stroke-width="3" stroke-dasharray="20 580" stroke-linecap="round"/>
+    <!-- Ring node -->
+    <circle cx="150" cy="50" r="6" fill="#10b981" filter="url(#glowGreenStrong)"/>
+  </g>
+  
+  <!-- Secondary ring (counter-spin visual) -->
+  <circle cx="150" cy="150" r="90" fill="none" stroke="#10b981" stroke-width="1" opacity="0.2" stroke-dasharray="5 10"/>
+  
+  <g class="float-score">
+    <!-- Main body -->
+    <rect x="85" y="75" width="130" height="155" rx="30" fill="url(#scoreBodyGrad)" stroke="#10b981" stroke-width="3" filter="url(#glowGreen)"/>
+    
+    <!-- Inner highlight -->
+    <ellipse cx="150" cy="95" rx="45" ry="12" fill="#10b981" opacity="0.1"/>
+    
+    <!-- Display screen -->
+    <rect x="105" y="100" width="90" height="55" rx="10" fill="#0a1a10" stroke="#10b981" stroke-width="2"/>
+    <rect x="108" y="103" width="84" height="49" rx="8" fill="#0a1a10"/>
+    
+    <!-- Screen inner glow -->
+    <rect x="110" y="105" width="80" height="45" rx="6" fill="#10b981" opacity="0.1"/>
+    
+    <!-- Score number -->
+    <text x="150" y="142" font-family="'Courier New', monospace" font-size="36" font-weight="bold" fill="#10b981" text-anchor="middle" filter="url(#glowGreen)">
+      9.4
+      <animate attributeName="fill-opacity" values="1;0.8;1" dur="2s" repeatCount="indefinite"/>
+    </text>
+    
+    <!-- Score bars -->
+    <g transform="translate(113, 165)">
+      <!-- Bar backgrounds -->
+      <rect x="0" y="0" width="10" height="40" rx="3" fill="#10b981" opacity="0.2"/>
+      <rect x="16" y="0" width="10" height="40" rx="3" fill="#10b981" opacity="0.2"/>
+      <rect x="32" y="0" width="10" height="40" rx="3" fill="#10b981" opacity="0.2"/>
+      <rect x="48" y="0" width="10" height="40" rx="3" fill="#10b981" opacity="0.2"/>
+      <rect x="64" y="0" width="10" height="40" rx="3" fill="#10b981" opacity="0.2"/>
+      
+      <!-- Animated fill bars -->
+      <rect x="0" y="16" width="10" height="24" rx="3" fill="url(#barGrad)" class="bar-pulse">
+        <animate attributeName="height" values="24;20;24" dur="2s" repeatCount="indefinite"/>
+        <animate attributeName="y" values="16;20;16" dur="2s" repeatCount="indefinite"/>
+      </rect>
+      <rect x="16" y="8" width="10" height="32" rx="3" fill="url(#barGrad)" class="bar-pulse" style="animation-delay: 0.2s">
+        <animate attributeName="height" values="32;28;32" dur="2s" repeatCount="indefinite" begin="0.2s"/>
+        <animate attributeName="y" values="8;12;8" dur="2s" repeatCount="indefinite" begin="0.2s"/>
+      </rect>
+      <rect x="32" y="2" width="10" height="38" rx="3" fill="url(#barGrad)" class="bar-pulse" style="animation-delay: 0.4s">
+        <animate attributeName="height" values="38;35;38" dur="2s" repeatCount="indefinite" begin="0.4s"/>
+        <animate attributeName="y" values="2;5;2" dur="2s" repeatCount="indefinite" begin="0.4s"/>
+      </rect>
+      <rect x="48" y="12" width="10" height="28" rx="3" fill="url(#barGrad)" class="bar-pulse" style="animation-delay: 0.6s">
+        <animate attributeName="height" values="28;24;28" dur="2s" repeatCount="indefinite" begin="0.6s"/>
+        <animate attributeName="y" values="12;16;12" dur="2s" repeatCount="indefinite" begin="0.6s"/>
+      </rect>
+      <rect x="64" y="6" width="10" height="34" rx="3" fill="url(#barGrad)" class="bar-pulse" style="animation-delay: 0.8s">
+        <animate attributeName="height" values="34;30;34" dur="2s" repeatCount="indefinite" begin="0.8s"/>
+        <animate attributeName="y" values="6;10;6" dur="2s" repeatCount="indefinite" begin="0.8s"/>
+      </rect>
+    </g>
+    
+    <!-- Side indicators -->
+    <circle cx="95" cy="135" r="4" fill="#10b981" opacity="0.6"/>
+    <circle cx="205" cy="135" r="4" fill="#10b981" opacity="0.6"/>
+  </g>
+  
+  <!-- Scale markers -->
+  <text x="55" y="155" font-family="monospace" font-size="10" fill="#10b981" opacity="0.6">0</text>
+  <text x="235" y="155" font-family="monospace" font-size="10" fill="#10b981" opacity="0.6">10</text>
+  
+  <!-- Floating metrics -->
+  <g font-family="monospace" font-size="8" fill="#10b981" opacity="0.5">
+    <text x="40" y="100">
+      EVAL
+      <animate attributeName="opacity" values="0.5;0.8;0.5" dur="2s" repeatCount="indefinite"/>
+    </text>
+    <text x="240" y="200">
+      PASS
+      <animate attributeName="opacity" values="0.5;0.8;0.5" dur="2s" repeatCount="indefinite" begin="0.5s"/>
+    </text>
+  </g>
+  
+  <!-- Decorative measurement ticks -->
+  <g stroke="#10b981" stroke-width="1" opacity="0.3">
+    <line x1="150" y1="45" x2="150" y2="55"/>
+    <line x1="245" y1="150" x2="255" y2="150"/>
+    <line x1="150" y1="245" x2="150" y2="255"/>
+    <line x1="45" y1="150" x2="55" y2="150"/>
+  </g>
+  
+  <!-- Label -->
+  <text x="150" y="290" font-family="'Segoe UI', Arial, sans-serif" font-size="22" font-weight="bold" fill="#10b981" text-anchor="middle" letter-spacing="4" filter="url(#softGlowG)">BIDSCORE</text>
+  <text x="150" y="315" font-family="'Segoe UI', Arial, sans-serif" font-size="11" fill="#ffffff" opacity="0.8" text-anchor="middle" letter-spacing="3">THE QUALITY ANALYST</text>
+</svg>

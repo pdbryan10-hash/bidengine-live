@@ -1,0 +1,16 @@
+{
+  "functions": {
+    "src/app/api/bidwrite/process-question/route.ts": {
+      "maxDuration": 180
+    },
+    "src/app/api/bidwrite/process-tender/route.ts": {
+      "maxDuration": 300
+    },
+    "src/app/api/bidvault/extract/route.ts": {
+      "maxDuration": 120
+    },
+    "src/app/api/bidgate/analyse/route.ts": {
+      "maxDuration": 120
+    }
+  }
+}

@@ -1,0 +1,139 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 350" width="300" height="350">
+  <defs>
+    <!-- Gradients -->
+    <linearGradient id="bodyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a3a5c"/>
+      <stop offset="100%" style="stop-color:#0d2233"/>
+    </linearGradient>
+    <linearGradient id="visorGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#00d4ff"/>
+      <stop offset="100%" style="stop-color:#0099cc"/>
+    </linearGradient>
+    <linearGradient id="penGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#2a2a4a"/>
+      <stop offset="100%" style="stop-color:#1a1a2a"/>
+    </linearGradient>
+    
+    <!-- Glow filters -->
+    <filter id="glowCyan" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="8" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="glowCyanStrong" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="12" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    
+    <!-- Animations -->
+    <style>
+      @keyframes float {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-8px); }
+      }
+      @keyframes pulse {
+        0%, 100% { opacity: 0.8; }
+        50% { opacity: 1; }
+      }
+      @keyframes write {
+        0%, 100% { transform: rotate(25deg); }
+        25% { transform: rotate(30deg) translateX(2px); }
+        75% { transform: rotate(20deg) translateX(-2px); }
+      }
+      @keyframes scanLine {
+        0%, 100% { width: 55px; opacity: 1; }
+        50% { width: 35px; opacity: 0.6; }
+      }
+      @keyframes sparkle {
+        0% { opacity: 1; r: 3; }
+        100% { opacity: 0; r: 1; transform: translate(15px, 8px); }
+      }
+      .float-group { animation: float 4s ease-in-out infinite; }
+      .pulse { animation: pulse 2s ease-in-out infinite; }
+      .write-anim { animation: write 2s ease-in-out infinite; transform-origin: 50% 100%; }
+    </style>
+  </defs>
+  
+  <!-- Background glow -->
+  <ellipse cx="150" cy="160" rx="80" ry="100" fill="#00d4ff" opacity="0.1" filter="url(#glowCyanStrong)"/>
+  
+  <g class="float-group">
+    <!-- Main body -->
+    <rect x="90" y="70" width="120" height="160" rx="60" ry="60" fill="url(#bodyGrad)" stroke="#00d4ff" stroke-width="3" filter="url(#glowCyan)"/>
+    
+    <!-- Inner shadow/highlight -->
+    <ellipse cx="150" cy="100" rx="40" ry="20" fill="#00d4ff" opacity="0.15"/>
+    
+    <!-- Visor -->
+    <rect x="105" y="115" width="90" height="35" rx="17" fill="url(#visorGrad)" filter="url(#glowCyanStrong)" class="pulse"/>
+    
+    <!-- Visor highlight -->
+    <rect x="115" y="123" width="70" height="4" rx="2" fill="white" opacity="0.8"/>
+    
+    <!-- Scan line -->
+    <rect x="120" y="135" width="55" height="2" rx="1" fill="white" opacity="0.6">
+      <animate attributeName="width" values="55;35;55" dur="1.5s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.6;0.3;0.6" dur="1.5s" repeatCount="indefinite"/>
+    </rect>
+    
+    <!-- Chest details -->
+    <line x1="130" y1="175" x2="170" y2="175" stroke="#00d4ff" stroke-width="1" opacity="0.4"/>
+    <line x1="135" y1="185" x2="165" y2="185" stroke="#00d4ff" stroke-width="1" opacity="0.3"/>
+    <line x1="140" y1="195" x2="160" y2="195" stroke="#00d4ff" stroke-width="1" opacity="0.2"/>
+  </g>
+  
+  <!-- Pen/Stylus -->
+  <g class="write-anim" transform="translate(210, 130)">
+    <rect x="0" y="0" width="8" height="70" rx="3" fill="url(#penGrad)" stroke="#00d4ff" stroke-width="2"/>
+    <polygon points="4,70 -2,85 10,85" fill="#00d4ff" filter="url(#softGlow)"/>
+    
+    <!-- Pen glow tip -->
+    <circle cx="4" cy="82" r="4" fill="#00d4ff" opacity="0.8" filter="url(#glowCyan)">
+      <animate attributeName="opacity" values="0.8;1;0.8" dur="0.5s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+  
+  <!-- Writing particles -->
+  <g>
+    <circle cx="225" cy="200" r="3" fill="#00d4ff" filter="url(#softGlow)">
+      <animate attributeName="opacity" values="1;0" dur="1.5s" repeatCount="indefinite"/>
+      <animate attributeName="cx" values="225;245" dur="1.5s" repeatCount="indefinite"/>
+      <animate attributeName="cy" values="200;210" dur="1.5s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="220" cy="210" r="2" fill="#00d4ff" filter="url(#softGlow)">
+      <animate attributeName="opacity" values="1;0" dur="1.5s" repeatCount="indefinite" begin="0.3s"/>
+      <animate attributeName="cx" values="220;240" dur="1.5s" repeatCount="indefinite" begin="0.3s"/>
+      <animate attributeName="cy" values="210;220" dur="1.5s" repeatCount="indefinite" begin="0.3s"/>
+    </circle>
+    <circle cx="228" cy="218" r="2" fill="#00d4ff" filter="url(#softGlow)">
+      <animate attributeName="opacity" values="1;0" dur="1.5s" repeatCount="indefinite" begin="0.6s"/>
+      <animate attributeName="cx" values="228;248" dur="1.5s" repeatCount="indefinite" begin="0.6s"/>
+      <animate attributeName="cy" values="218;228" dur="1.5s" repeatCount="indefinite" begin="0.6s"/>
+    </circle>
+  </g>
+  
+  <!-- Holographic text effect -->
+  <g opacity="0.5">
+    <text x="40" y="100" font-family="monospace" font-size="8" fill="#00d4ff" letter-spacing="1">
+      <tspan x="40" dy="0">CRAFTING</tspan>
+      <tspan x="40" dy="12">RESPONSE...</tspan>
+      <animate attributeName="opacity" values="0.5;0.2;0.7;0.4;0.5" dur="3s" repeatCount="indefinite"/>
+    </text>
+  </g>
+  
+  <!-- Label -->
+  <text x="150" y="290" font-family="'Segoe UI', Arial, sans-serif" font-size="22" font-weight="bold" fill="#00d4ff" text-anchor="middle" letter-spacing="4" filter="url(#softGlow)">BIDWRITE</text>
+  <text x="150" y="315" font-family="'Segoe UI', Arial, sans-serif" font-size="11" fill="#ffffff" opacity="0.8" text-anchor="middle" letter-spacing="3">THE RESPONSE CRAFTER</text>
+</svg>
