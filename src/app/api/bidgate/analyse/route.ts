@@ -24,6 +24,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing file or clientId' }, { status: 400 });
     }
 
+    // 20MB limit — larger files will cause token overflow or timeout
+    const MAX_FILE_BYTES = 20 * 1024 * 1024;
+    if (file.size > MAX_FILE_BYTES) {
+      return NextResponse.json({ error: `File too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximum size is 20 MB. Try splitting the document or removing appendices.` }, { status: 413 });
+    }
+
     // ── 1. Extract text ──────────────────────────────────────────────────────
     const buffer = Buffer.from(await file.arrayBuffer());
     const fileName = file.name.toLowerCase();
