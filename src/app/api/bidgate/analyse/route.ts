@@ -207,16 +207,20 @@ Rules:
 
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 4000,
+      max_tokens: 8000,
       messages: [{ role: 'user', content: prompt }],
     });
 
     const raw = response.content[0].type === 'text' ? response.content[0].text.trim() : '{}';
     let analysis: any = {};
     try {
-      analysis = JSON.parse(raw.replace(/```json\n?/g, '').replace(/```/g, '').trim());
+      // Strip markdown code fences if present
+      const cleaned = raw.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/i, '').trim();
+      analysis = JSON.parse(cleaned);
     } catch {
-      return NextResponse.json({ error: 'Failed to parse analysis response', raw }, { status: 500 });
+      // Log the raw output to help debug future issues
+      console.error('Failed to parse analysis JSON. Stop reason:', response.stop_reason, 'Raw (first 500):', raw.slice(0, 500));
+      return NextResponse.json({ error: 'Failed to parse analysis response', stop_reason: response.stop_reason, raw: raw.slice(0, 1000) }, { status: 500 });
     }
 
     // Override buyer fields with user-provided values
