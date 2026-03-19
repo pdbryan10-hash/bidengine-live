@@ -3,8 +3,10 @@ export const maxDuration = 120;
 import { NextRequest, NextResponse } from 'next/server';
 import mammoth from 'mammoth';
 import pdfParse from 'pdf-parse';
+import Anthropic from '@anthropic-ai/sdk';
 
-const N8N_WEBHOOK_URL = process.env.BIDGATE_N8N_WEBHOOK_URL || 'https://bidengine.app.n8n.cloud/webhook/bidgate-analyse';
+const BUBBLE_BASE = 'https://bidenginev1.bubbleapps.io/version-test/api/1.1/obj';
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,72 +21,217 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing file or clientId' }, { status: 400 });
     }
 
+    // ── 1. Extract text ──────────────────────────────────────────────────────
     const buffer = Buffer.from(await file.arrayBuffer());
     const fileName = file.name.toLowerCase();
-    const fileType = fileName.endsWith('.pdf') ? 'pdf' :
-                     fileName.endsWith('.docx') ? 'docx' :
-                     fileName.endsWith('.doc') ? 'doc' : 'text';
-
-    // Extract text server-side — avoids unreliable n8n binary extraction
     let tenderText = '';
-    if (fileType === 'pdf') {
-      const parsed = await pdfParse(buffer);
-      tenderText = parsed.text;
-    } else if (fileType === 'docx') {
-      const result = await mammoth.extractRawText({ buffer });
-      tenderText = result.value;
+    if (fileName.endsWith('.pdf')) {
+      tenderText = (await pdfParse(buffer)).text;
+    } else if (fileName.endsWith('.docx') || fileName.endsWith('.doc')) {
+      tenderText = (await mammoth.extractRawText({ buffer })).value;
     } else {
       tenderText = buffer.toString('utf-8');
     }
 
-    // Call n8n webhook with extracted text only — no binary needed
-    const n8nResponse = await fetch(N8N_WEBHOOK_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        body: {
-          clientId,
-          tenderName: tenderName || file.name,
-          fileName: file.name,
-          fileType: 'text',
-          tenderText: tenderText.substring(0, 50000),
-        }
-      }),
+    // ── 2. Fetch BidVault evidence from Bubble ───────────────────────────────
+    const bh = { 'Authorization': `Bearer ${process.env.BUBBLE_API_KEY || ''}` };
+    let evidenceSummary = 'No evidence library data available.';
+    let evidenceCounts: Record<string, number> = {};
+    let totalEvidence = 0;
+
+    try {
+      const evRes = await fetch(
+        `${BUBBLE_BASE}/Project_Evidence?constraints=${encodeURIComponent(JSON.stringify([
+          { key: 'project_id', constraint_type: 'equals', value: clientId }
+        ]))}&limit=200`,
+        { headers: bh }
+      );
+      if (evRes.ok) {
+        const records: any[] = (await evRes.json()).response?.results || [];
+        totalEvidence = records.length;
+        records.forEach(r => {
+          const cat = r.category || 'OTHER';
+          evidenceCounts[cat] = (evidenceCounts[cat] || 0) + 1;
+        });
+        const catLines = Object.entries(evidenceCounts)
+          .sort((a, b) => b[1] - a[1])
+          .map(([cat, count]) => {
+            const titles = records
+              .filter(r => (r.category || 'OTHER') === cat)
+              .slice(0, 3)
+              .map(r => r.title || r.source_text?.slice(0, 60))
+              .filter(Boolean).join('; ');
+            return `- ${cat}: ${count} item${count > 1 ? 's' : ''}${titles ? ` (e.g. ${titles})` : ''}`;
+          }).join('\n');
+        evidenceSummary = totalEvidence > 0
+          ? `Client has ${totalEvidence} evidence items:\n${catLines}`
+          : 'Client has no evidence items in their BidVault yet.';
+      }
+    } catch { /* non-fatal */ }
+
+    // ── 3. Call Claude ───────────────────────────────────────────────────────
+    const today = new Date().toISOString().split('T')[0];
+
+    const prompt = `You are an expert UK public sector bid consultant performing a Go/No-Go analysis.
+
+TODAY: ${today}
+TENDER: ${tenderName || file.name}
+${buyerName ? `BUYER: ${buyerName}` : ''}
+${buyerOrgType ? `BUYER TYPE: ${buyerOrgType}` : ''}
+
+CLIENT'S BIDVAULT EVIDENCE LIBRARY:
+${evidenceSummary}
+
+TENDER DOCUMENT:
+${tenderText.slice(0, 45000)}
+
+Return a single valid JSON object — no markdown, no explanation — with EXACTLY this structure:
+
+{
+  "readinessScore": <number 0-10>,
+  "recommendation": {
+    "decision": <"BID" or "NO BID">,
+    "confidence": <number 0-10>,
+    "headline": <1-2 sentence summary>,
+    "decisionFactors": [
+      { "factor": <string>, "weight": <"Critical"|"High"|"Medium">, "score": <number 0-10>, "rationale": <string> }
+    ]
+  },
+  "executiveSummary": {
+    "oneLiner": <string>,
+    "keyStrengths": [<string>],
+    "keyWeaknesses": [<string>],
+    "criticalGaps": [<string>],
+    "winProbability": <"High (60%+)"|"Medium (35-60%)"|"Low (<35%)">
+  },
+  "tenderProfile": {
+    "opportunityName": <string or null>,
+    "buyerOrganisation": <string or null>,
+    "buyerType": <string or null>,
+    "sector": <string or null>,
+    "region": <string or null>,
+    "serviceCategories": [<string>],
+    "procurementRoute": <string or null>,
+    "contractDescription": <string or null>,
+    "contractValue": {
+      "annualValue": <number or null>,
+      "totalValue": <number or null>,
+      "valueRange": <string or null>
+    },
+    "contractTerm": {
+      "initialTerm": <string or null>,
+      "extensionOptions": <string or null>,
+      "totalPossibleTerm": <string or null>
+    },
+    "portfolioSize": null
+  },
+  "keyDates": {
+    "submissionDeadline": <ISO date string or null>,
+    "clarificationDeadline": <ISO date string or null>,
+    "contractStartDate": <ISO date string or null>,
+    "daysUntilSubmission": <number or null>,
+    "siteVisitDates": <string or null>,
+    "awardDate": <ISO date string or null>,
+    "mobilisationPeriod": <string or null>
+  },
+  "mandatoryRequirements": {
+    "overallStatus": <"pass"|"at risk"|"fail">,
+    "requirements": [
+      {
+        "requirement": <string>,
+        "threshold": <string or null>,
+        "status": <"met"|"partial"|"not met">,
+        "ourPosition": <string or null>,
+        "action": <string or null>
+      }
+    ]
+  },
+  "evidenceAnalysis": {
+    "overallEvidenceCoverage": <string e.g. "72%">,
+    "strongAreas": [<string>],
+    "gapAreas": [
+      {
+        "area": <string>,
+        "severity": <"Critical"|"Major"|"Minor">,
+        "impact": <string or null>,
+        "canWeAddress": <string or null>
+      }
+    ],
+    "relevantCaseStudies": [
+      { "title": <string>, "relevance": <string>, "strengthForTender": <"High"|"Medium"|"Low"> }
+    ]
+  },
+  "evaluationModel": {
+    "qualityWeighting": <number or null>,
+    "priceWeighting": <number or null>,
+    "qualityPriceRatio": <string or null>,
+    "criteria": [
+      {
+        "criterion": <string>,
+        "weighting": <number or null>,
+        "ourStrength": <"Strong"|"Medium"|"Weak">,
+        "evidenceGap": <string or null>
+      }
+    ]
+  },
+  "competitivePosition": {
+    "winProbability": <"High (60%+)"|"Medium (35-60%)"|"Low (<35%)">",
+    "ourDifferentiators": [<string>],
+    "competitiveThreats": [<string>]
+  },
+  "riskAssessment": {
+    "overallRisk": <"Low"|"Medium"|"High">,
+    "risks": [
+      {
+        "category": <string>,
+        "risk": <string>,
+        "severity": <"High"|"Medium"|"Low">,
+        "likelihood": <"High"|"Medium"|"Low">,
+        "mitigation": <string or null>
+      }
+    ]
+  },
+  "nextSteps": [
+    { "action": <string>, "priority": <"Immediate"|"This Week"|"Before Submission"> }
+  ]
+}
+
+Rules:
+- Score evidence strength against the client's actual BidVault items above — if they have no SOCIAL_VALUE items and the tender weights it heavily, that is a Critical gap
+- daysUntilSubmission = days from ${today} to submission deadline (positive integer)
+- Be specific to this tender — no generic advice
+- Return ONLY the JSON object`;
+
+    const response = await anthropic.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 4000,
+      messages: [{ role: 'user', content: prompt }],
     });
 
-    if (!n8nResponse.ok) {
-      const errorText = await n8nResponse.text();
-      console.error('n8n error:', errorText);
-      return NextResponse.json({ error: 'Analysis failed', details: errorText }, { status: 500 });
+    const raw = response.content[0].type === 'text' ? response.content[0].text.trim() : '{}';
+    let analysis: any = {};
+    try {
+      analysis = JSON.parse(raw.replace(/```json\n?/g, '').replace(/```/g, '').trim());
+    } catch {
+      return NextResponse.json({ error: 'Failed to parse analysis response', raw }, { status: 500 });
     }
 
-    const result = await n8nResponse.json();
-
-    // Handle both array and object responses from n8n
-    const data = Array.isArray(result) ? result[0] : result;
-
-    // Override tenderProfile with user-provided buyer info (GPT-4o can't know what the user typed)
-    if (data.analysis?.tenderProfile) {
-      if (buyerName) data.analysis.tenderProfile.buyerOrganisation = buyerName;
-      if (buyerOrgType) data.analysis.tenderProfile.buyerType = buyerOrgType;
+    // Override buyer fields with user-provided values
+    if (analysis.tenderProfile) {
+      if (buyerName) analysis.tenderProfile.buyerOrganisation = buyerName;
+      if (buyerOrgType) analysis.tenderProfile.buyerType = buyerOrgType;
     }
 
-    // Fetch BidLearn context directly from Bubble — no internal HTTP call
+    // ── 4. Fetch BidLearn context ────────────────────────────────────────────
     let bidlearnContext = null;
     if (buyerName || buyerOrgType) {
       try {
-        const BUBBLE_BASE = 'https://bidenginev1.bubbleapps.io/version-test/api/1.1/obj';
-        const bh = { 'Authorization': `Bearer ${process.env.BUBBLE_API_KEY || ''}` };
-
         const constraints = (extra: object[] = []) =>
           encodeURIComponent(JSON.stringify([
             { key: 'client_id', constraint_type: 'equals', value: clientId },
             ...(buyerName ? [{ key: 'buyer_name', constraint_type: 'text contains', value: buyerName }] : []),
             ...extra,
           ]));
-
         const outcomeConstraints = encodeURIComponent(JSON.stringify([
           { key: 'client', constraint_type: 'equals', value: clientId },
           ...(buyerName ? [{ key: 'buyer_name', constraint_type: 'text contains', value: buyerName }] : []),
@@ -100,64 +247,44 @@ export async function POST(request: NextRequest) {
         const profile = profileRes.ok ? (await profileRes.json()).response?.results?.[0] || null : null;
         const negativeInsights = negInsightsRes.ok ? (await negInsightsRes.json()).response?.results || [] : [];
         const positiveInsights = posInsightsRes.ok ? (await posInsightsRes.json()).response?.results || [] : [];
-        const outcomes: Record<string, unknown>[] = outcomesRes.ok ? (await outcomesRes.json()).response?.results || [] : [];
+        const outcomes: any[] = outcomesRes.ok ? (await outcomesRes.json()).response?.results || [] : [];
 
         if (profile || outcomes.length > 0) {
           const wins = outcomes.filter(o => o.outcome === 'win').length;
           const losses = outcomes.filter(o => o.outcome === 'loss').length;
           const winRate = outcomes.length > 0 ? wins / outcomes.length : 0;
-          const lastOutcome = outcomes[0]?.outcome as string | undefined;
-
-          // Derive strong/weak categories from Outcome_Insight records
           const catPos: Record<string, number> = {};
           const catNeg: Record<string, number> = {};
-          positiveInsights.forEach((i: Record<string, unknown>) => { const c = i.category as string; if (c) catPos[c] = (catPos[c] || 0) + 1; });
-          negativeInsights.forEach((i: Record<string, unknown>) => { const c = i.category as string; if (c) catNeg[c] = (catNeg[c] || 0) + 1; });
+          positiveInsights.forEach((i: any) => { const c = i.category; if (c) catPos[c] = (catPos[c] || 0) + 1; });
+          negativeInsights.forEach((i: any) => { const c = i.category; if (c) catNeg[c] = (catNeg[c] || 0) + 1; });
           const strongCats = Object.entries(catPos).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([c]) => c).join(', ');
           const weakCats = Object.entries(catNeg).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([c]) => c).join(', ');
-
-          // Use Buyer_Profile if it exists, otherwise derive from outcomes
           const derivedProfile = profile || {
-            buyer_name: buyerName,
-            total_bids: outcomes.length,
-            wins,
-            losses,
-            win_rate: winRate,
-            last_outcome: lastOutcome,
-            strong_categories: strongCats || null,
-            weak_categories: weakCats || null,
+            buyer_name: buyerName, total_bids: outcomes.length, wins, losses,
+            win_rate: winRate, last_outcome: outcomes[0]?.outcome,
+            strong_categories: strongCats || null, weak_categories: weakCats || null,
           };
-
           const catLosses: Record<string, number> = {};
-          negativeInsights.forEach((i: Record<string, unknown>) => {
-            const cat = i.category as string;
-            if (cat) catLosses[cat] = (catLosses[cat] || 0) + 1;
-          });
-          const lossWarnings = Object.entries(catLosses)
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, 3)
+          negativeInsights.forEach((i: any) => { const cat = i.category; if (cat) catLosses[cat] = (catLosses[cat] || 0) + 1; });
+          const lossWarnings = Object.entries(catLosses).sort((a, b) => b[1] - a[1]).slice(0, 3)
             .map(([cat, count]) => `${count} previous bid${count > 1 ? 's' : ''} with ${buyerName} scored weak on ${cat}`);
-
           let sectorProfile = null;
           const orgType = (profile?.buyer_org_type as string | undefined) || buyerOrgType;
           if (orgType) {
             const sRes = await fetch(`${BUBBLE_BASE}/Sector_Profile?constraints=${encodeURIComponent(JSON.stringify([{ key: 'org_type', constraint_type: 'equals', value: orgType }]))}&limit=1`, { headers: bh });
             if (sRes.ok) sectorProfile = (await sRes.json()).response?.results?.[0] || null;
           }
-
           bidlearnContext = { hasPriorBids: true, profile: derivedProfile, recentInsights: negativeInsights.slice(0, 5), lossWarnings, sectorProfile };
         }
-      } catch {
-        // non-fatal
-      }
+      } catch { /* non-fatal */ }
     }
 
     return NextResponse.json({
-      success: data.success || true,
-      analysis: data.analysis,
-      tender_name: data.tender_name || tenderName || file.name,
-      evidence_counts: data.evidence_counts,
-      total_evidence: data.total_evidence,
+      success: true,
+      analysis,
+      tender_name: analysis.tenderProfile?.opportunityName || tenderName || file.name,
+      evidence_counts: evidenceCounts,
+      total_evidence: totalEvidence,
       bidlearn: bidlearnContext,
       buyer_name: buyerName || null,
       buyer_org_type: buyerOrgType || null,
@@ -165,9 +292,6 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('BidGate API error:', error);
-    return NextResponse.json(
-      { error: 'Failed to analyse tender', details: String(error) },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to analyse tender', details: String(error) }, { status: 500 });
   }
 }
