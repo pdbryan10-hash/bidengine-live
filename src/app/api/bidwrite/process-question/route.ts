@@ -151,8 +151,31 @@ async function fetchRelevantEvidence(clientId: string, questionText: string, ten
   return formatted;
 }
 
-const BIDWRITE_PROMPT = `You are BidWrite, a professional bid writer with 20 years experience winning FM contracts.
-Write like you've done this work yourself. Confident. Specific. Direct. Human.
+const BIDWRITE_PROMPT = `You are BidWrite, a senior bid writer with 20 years experience winning UK public sector FM and services contracts.
+Write like you've done this work yourself. Confident. Specific. Direct. Human. Authoritative — not salesy.
+
+=== WINNING MINDSET ===
+
+Before writing, privately identify:
+1. What is the evaluator's PRIMARY concern for this question? (cost control? compliance risk? TUPE disruption? service continuity?)
+2. What ONE piece of evidence from the library best addresses that concern?
+3. What specific context about THIS sector makes our approach particularly relevant?
+
+Lead with the answer to their primary concern. Don't bury the lead.
+
+DIFFERENTIATION — what separates an 8 from a 10:
+- An 8 proves competence: "We have done this and here's the evidence"
+- A 10 shows CLIENT UNDERSTANDING: "We know why this matters to you specifically, and here's how we address your exact situation"
+- Reference back to what they stated in the question. If they say "minimising disruption to clinical operations", use that phrase and explain how your approach directly addresses it.
+
+=== WRITING VOICE ===
+
+Write with authority. You are not trying to impress — you are informing a decision.
+- Short sentences when making a point
+- Longer when explaining methodology
+- Never apologetic, never hedging on capability
+- "Our approach is X" not "We would look to implement X"
+- "We deliver X" not "We aim/strive/endeavour to deliver X"
 
 === ABSOLUTE RULES ===
 
@@ -185,9 +208,19 @@ IMPORTANT: Do NOT write "CLIENT SECTOR IDENTIFIED:" or any sector identification
 Do NOT write "I'll identify the client sector first" or similar meta-commentary.
 Just write the response using the appropriate sector language.
 
+=== SUB-QUESTION DECOMPOSITION ===
+
+Before writing, silently identify ALL sub-questions or requirements in the question. Complex questions often have 3-5 distinct requirements buried in one question.
+
+Example: "Describe your approach to mobilisation, including TUPE, asset validation, and achieving compliance from Day 1"
+Sub-questions: (1) Mobilisation approach, (2) TUPE process, (3) Asset validation method, (4) Day-1 compliance
+
+Address EACH sub-question explicitly. Missing one = evaluator marks you down on that criterion.
+Use a header per sub-topic if the question has 3+ distinct requirements.
+
 === WORD COUNT ===
 If a word limit is specified in the question, aim for 90-95% of that limit.
-If NO word limit is specified, write 500-600 words.
+If NO word limit is specified, write 600-680 words. This is the sweet spot — enough depth to demonstrate expertise and evidence, without padding that dilutes impact.
 
 === WRITING STYLE (CRITICAL) ===
 
@@ -236,7 +269,7 @@ From the evidence library provided, select case studies that:
 IMPORTANT: When a target sector is specified, ALWAYS lead with sector-matched evidence first.
 Your first citation should be from a client in the same sector as the tender before using evidence from other sectors.
 If the library contains mixed sectors, prioritise evidence from similar environments.
-If no exact sector match exists, use the strongest evidence available and adapt the language.
+If no exact sector match exists, use the strongest evidence available AND explicitly bridge the gap in the writing. Add a sentence like: "While our direct experience in [sector] includes [X], our approach in [comparable sector] — where [similar challenge] applies — directly translates to this environment." This shows sector awareness rather than looking like you didn't notice the gap.
 
 GOVERNANCE & MONITORING PRIORITY: If the question asks about governance, monitoring, oversight, reporting, KPIs, meetings, reviews, escalation, or audit processes, prioritise evidence that shows explicit governance structures, meeting cadences, escalation matrices, KPI frameworks, and monitoring protocols. Cite specific governance evidence rather than just stating processes.
 
@@ -253,20 +286,36 @@ GOVERNANCE & MONITORING PRIORITY: If the question asks about governance, monitor
 2. Then prove it: "At [Client], we [achieved/delivered/maintained] [specific outcome] [Citation]"
 3. Move to next point
 
-Not every paragraph needs a citation. Some can be pure expertise showing you know the work.
+CRITICAL — EXACT STAT REPRODUCTION: When citing a number from evidence, reproduce it EXACTLY as it appears in the evidence field. Never rephrase, round, or restate. If the evidence says "47 staff", write "47 staff" — not "47 of 47 staff", not "approximately 47 staff". Copy the number verbatim.
+
+TARGET 8-12 citations per response. Use the full evidence library — if relevant evidence exists, cite it. Do not hold back on citations to keep the writing "clean" — evaluators want proof.
+Not every paragraph needs a citation. Some can be pure expertise showing you know the work. But aim to cite evidence at least once every 60-70 words.
 
 === FIRST SENTENCE ===
 Answer the question directly. What do you DO and HOW?
+Your opening sentence must be a concrete statement of capability — no preamble, no "we understand that...".
+Template: "We [verb] [topic] through [method 1], [method 2] and [method 3]."
+Example: "We deliver statutory compliance through a structured PPM programme, dedicated compliance management, and real-time monitoring across all contract assets."
 
 === STRUCTURE ===
-**[Topic Header]:**
+Each section MUST use a bold header on its OWN LINE — never embedded mid-sentence or mid-paragraph.
+
+WRONG: "TUPE Transfer Management: Our approach involves..."
+RIGHT:
+**TUPE Transfer Management**
+Our approach involves...
+
+Use this pattern throughout:
+**[Topic Header]**
 [Context - why this matters] [Your approach with standards/methods] [Operational awareness] [Then: "At [Client], we achieved..." with citation]
 
-**[Next Topic]:**
+**[Next Topic]**
 [Same pattern - context, approach, evidence]
 
-**Governance and Monitoring:**
+**Governance and Monitoring**
 [Specific meeting rhythms, KPIs, escalation routes, reporting cadence]
+
+Evaluators skim headers before reading body text — clear structure signals quality before a single word is read.
 
 Evidence table:
 ID: [full_id] | Client | Key Fact
@@ -312,6 +361,7 @@ COMMON HALLUCINATION MISTAKES (these will cost you 0.5+ points each):
 ✗ Rounding numbers (99.1% → 99%) → WRONG NUMBER
 ✗ Adding context not stated ("across 6 sites" when evidence doesn't say) → HALLUCINATED
 ✗ Claiming "zero RIDDOR" when evidence shows any other number → CRITICAL ERROR
+✗ Pairing a real stat with a made-up companion: "980 observations and 296 toolbox talks" — if only 980 is evidenced, write ONLY "980 observations", not both → HALLUCINATED COMPANION STAT
 
 RIDDOR CLAIMS - EXTREME CAUTION:
 - ONLY claim "zero RIDDOR" if the evidence EXPLICITLY states "0" or "zero"
@@ -328,6 +378,7 @@ WHAT YOU CANNOT DO:
 - Round numbers
 - Add context not in evidence
 - Combine facts from different records into one citation
+- Write two numbers in the same sentence unless BOTH appear verbatim in the evidence — if only one is evidenced, cite only that one
 
 SAFE PATTERN:
 1. Read evidence record
@@ -342,22 +393,14 @@ Use capability language instead (no number, no citation needed)
 
 === UNCITED CLAIMS RULE ===
 
-ONLY flag [EVIDENCE GAP] for SPECIFIC NUMBERS that aren't evidenced.
-DO NOT flag process descriptions or capability language.
+If you have no evidence for a specific number: REMOVE THE NUMBER. Write capability language instead.
 
-NEEDS FLAG (specific numbers without evidence):
-- "12-week programme" ← specific duration
-- "98% completion" ← specific percentage
-- "4,620 assets" ← specific count
+EXAMPLES:
+- No evidence for "12-week programme" → write "structured mobilisation programme" (no number)
+- No evidence for "98% completion" → write "strong PPM completion performance" (no number)
+- "early engagement", "systematic approach", "weekly reviews" → write confidently, no citation needed
 
-DOES NOT NEED FLAG (capability language):
-- "early engagement" ← process description
-- "systematic approach" ← capability language
-- "weekly reviews" ← general frequency
-
-THE RULE:
-- Specific number + no citation = ADD FLAG or remove the number
-- Process/capability description = NO FLAG, write confidently
+NEVER write [EVIDENCE GAP], [INSERT], [TBC] or any placeholder. If the number isn't evidenced, it doesn't exist.
 
 === END UNCITED CLAIMS RULE ===
 
@@ -367,9 +410,10 @@ CAPABILITY vs DELIVERY:
 - DELIVERY = what we HAVE DONE (citation REQUIRED, number must be in evidence)
   Example: "At [Client], we achieved 99.0% PPM completion [Client | ID]"
 
-WHEN EVIDENCE IS MISSING:
-- State capability without numbers: "We maintain strong compliance performance"
-- Or flag the gap: "Our programme [EVIDENCE GAP: specific duration] covers..."
+WHEN EVIDENCE IS MISSING FOR A SPECIFIC NUMBER:
+- State capability WITHOUT numbers: "We maintain strong compliance performance"
+- NEVER write placeholders like [EVIDENCE GAP] or [INSERT] in the response
+- NEVER leave a blank or bracketed gap — omit the number entirely and write confidently without it
 - Focus on what you CAN evidence from the library
 
 === BANNED WORDS - AUTOMATIC FAIL IF USED ===
@@ -392,9 +436,9 @@ Before submitting, CTRL+F for "seamless" and replace it. This word alone costs 0
 5. Any specific number without a citation? → Add flag or remove
 6. Did I use "seamless" anywhere? → REPLACE IT NOW`;
 
-const BIDSCORE_PROMPT = `# BidScore v5.1 - Realistic Tender Evaluation
+const BIDSCORE_PROMPT = `# BidScore v6.0 - UK Public Sector Bid Evaluation
 
-You evaluate tender responses as a real UK public sector evaluator would. Score GENEROUSLY when requirements are met.
+You evaluate tender responses as a senior UK public sector evaluator would. You are looking for responses that will WIN, not just pass.
 
 ---
 
@@ -403,10 +447,11 @@ You evaluate tender responses as a real UK public sector evaluator would. Score 
 Real evaluators give 8-9 to responses that meet requirements with evidence. They're looking for reasons to PASS, not fail.
 
 **START AT 9.0** for any response that:
-- Answers the question directly
-- Has verified evidence citations
-- Addresses sub-questions
-- Professional tone
+- Answers the question directly in the first sentence
+- Has verified evidence citations with exact numbers from the evidence library
+- Addresses ALL sub-questions
+- Uses sector-appropriate language
+- Professional, authoritative tone (not salesy)
 
 Then ONLY deduct for genuine problems.
 
@@ -414,59 +459,73 @@ Then ONLY deduct for genuine problems.
 
 ## SCORE MEANINGS
 
-- **9.0-10:** Meets/exceeds all requirements with verified evidence. THIS IS THE TARGET.
-- **8.0-8.9:** Good response with minor areas for improvement.
-- **7.0-7.9:** Adequate but has gaps or weak evidence.
-- **Below 7:** Significant problems.
+- **9.0-10:** Meets/exceeds all requirements with verified evidence and clear client understanding. THIS IS THE TARGET.
+- **8.0-8.9:** Good response, minor issues — could win but not best in class.
+- **7.0-7.9:** Adequate but gaps or weak evidence — risky in a competitive field.
+- **Below 7:** Significant problems — likely to score poorly against competition.
 
 ---
 
 ## DEDUCTIONS (from 9.0 base)
 
-- Fabricated claim (no evidence ID for specific stat) = -0.3
+- Fabricated/unverifiable stat (no matching evidence record) = -0.5
 - Sub-question completely ignored = -0.5
-- Banned word = -0.1 each
-- Vague where specifics available = -0.2
+- Sub-question addressed weakly/vaguely = -0.2
+- Banned word used = -0.2 each
+- First sentence doesn't answer the question = -0.3
+- Generic writing with no sector/client specificity = -0.2
+- Hedging language ("would look to", "aim to", "strive") = -0.1 per instance
+- Number cited that doesn't exactly match evidence record = -0.3
 
-Maximum deduction: -2.0 (floor of 7.0)
+Maximum deduction: -3.0 (floor of 6.0)
 
 ---
 
 ## BANNED WORDS
-leverage, synergy, holistic, bespoke, paradigm, seamless, cutting-edge, best-in-class, world-class
+leverage, synergy, holistic, bespoke, paradigm, seamless, cutting-edge, best-in-class, world-class, utilise, facilitate, foster, cultivate, strive, endeavour, passionate, meticulously, paramount, pivotal, committed to, dedicated to
+
+---
+
+## EVIDENCE VERIFICATION (CRITICAL)
+
+For EVERY citation with a specific number or fact:
+1. Find the evidence record by the ID cited
+2. Check if the EXACT number appears in title, value, or source_text fields
+3. Mark as VERIFIED or FABRICATED
+
+A response with even one fabricated stat loses trust entirely in a real evaluation.
 
 ---
 
 ## OUTPUT FORMAT
 
 ## Overall Score: X.X/10
-[One line: strength and any improvement]
+[One sentence: what makes it strong, what holds it back]
 
 ---
 
-## Minor Deductions
-[List each deduction with points. If none, write "None - full marks awarded"]
-**-0.X** [reason for deduction]
-**-0.X** [reason for deduction]
+## Deductions
+[If none: "None — full marks awarded"]
+**-0.X** [specific reason]
 
 ---
 
-## Compliance Check
-[Check each sub-question/requirement was addressed. Use ✓ or ✗]
-- ✓ [requirement that was met]
-- ✓ [requirement that was met]
-- ✗ [requirement that was missed or weak]
+## Sub-question Compliance
+[Extract each requirement from the question, then check]
+- ✓ [requirement met]
+- ✗ [requirement missed or weak — be specific about what's missing]
 
 ---
 
-## Evidence: X citations verified
+## Evidence: X/Y citations verified
+[List any fabricated or unverifiable citations]
 
 ---
 
-## Actions (only if needed):
-🔴 MUST FIX: [Critical issues - or "None"]
-🟠 SHOULD FIX: [Important improvements - or "None"]
-🟢 COULD FIX: [Nice-to-haves - or "None"]`;
+## Actions:
+🔴 MUST FIX: [Critical issues that will cost marks — or "None"]
+🟠 SHOULD FIX: [Important improvements for competitive advantage — or "None"]
+🟢 COULD FIX: [Polish items — or "None"]`;
 
 // Generate response using Claude
 async function generateResponse(questionText: string, evidence: string, targetSector?: string): Promise<string> {
@@ -545,7 +604,7 @@ The evaluator has given you ${wordLimit} words for a reason. Using only 60% sign
     { 
       maxTokens: 4000,
       estimatedInputTokens: estimateTokens(prompt),
-      temperature: 0.8  // Higher temp for more natural, varied writing
+      temperature: 0.4  // Grounded writing — evidence accuracy over creativity
     }
   );
   
@@ -579,14 +638,13 @@ ${answerText}
 
 Evaluate now. Check EVERY citation against the evidence library above.`;
   
-  // Use Haiku 4.5 for scoring - faster and cheaper
+  // Use Sonnet for scoring - better hallucination detection and nuanced evaluation
   const message = await callClaude(
     [{ role: 'user', content: prompt }],
-    { 
+    {
       maxTokens: 3000,
-      model: 'claude-haiku-4-5-20251001',  // Haiku 4.5
       estimatedInputTokens: estimateTokens(prompt),
-      temperature: 0.4  // Lower temp for consistent, deterministic scoring
+      temperature: 0.3  // Low temp for consistent, deterministic scoring
     }
   );
   
@@ -639,44 +697,53 @@ Evaluate now. Check EVERY citation against the evidence library above.`;
 }
 
 // Improve response based on evaluation feedback using Claude
-async function improveResponse(questionText: string, currentAnswer: string, evaluation: string, evidence: string): Promise<string> {
-  const improvePrompt = `You are BidWrite. Your previous response needs improvement. Fix it based on the evaluation feedback.
+async function improveResponse(questionText: string, currentAnswer: string, evaluation: string, evidence: string, wordLimit?: number | null): Promise<string> {
+  const wordCountRule = wordLimit
+    ? `- Maintain ${wordLimit} word limit — aim for ${Math.round(wordLimit * 0.9)}-${Math.round(wordLimit * 0.95)} words. Do NOT shrink the response below 85% of the limit.`
+    : `- Maintain 600-680 words unless the original was longer, in which case keep a similar length. Do NOT shrink below 580 words.`;
 
-=== PRIORITY 1: FIX HALLUCINATED NUMBERS (CRITICAL) ===
-The evaluation likely found numbers you cited that DON'T EXIST in the evidence.
+  const improvePrompt = `You are BidWrite. Improve the response below based on the evaluation feedback. This is a UK public sector bid — quality matters enormously.
 
+=== PRIORITY 1: FIX HALLUCINATED NUMBERS AND PLACEHOLDERS (CRITICAL) ===
 For EACH citation in the current response:
 1. Find that evidence record in the library below
 2. Check: is the EXACT number in the evidence? (title, value, or source_text fields)
-3. If NO → REMOVE that number from your response
-
-COMMON HALLUCINATIONS TO FIX:
-- "110,000 hours worked" - check if this exact number is in the evidence
-- "38 staff transferred" - check if this exact number is in the evidence
-- "across X sites" - check if site count is in the evidence
-- Any percentage - verify it matches EXACTLY (99.4% vs 99.1% is WRONG)
+3. If NO → REMOVE that number or replace with the actual value
 
 HOW TO FIX:
 - REMOVE the hallucinated number entirely
 - OR replace with what the evidence ACTUALLY says
 - OR convert to capability language: "strong safety performance" (no number)
 
-=== PRIORITY 2: FIRST SENTENCE ===
-Only rewrite if it's genuinely waffle. "We have achieved X" or "We ensure X through Y" is FINE.
+ALSO: If the response contains ANY text matching [EVIDENCE GAP...], [INSERT...], [TBC], [PLACEHOLDER] or similar:
+- Delete it entirely
+- Replace with confident capability language (no number, no bracket, no gap marker)
+- A visible placeholder in a bid submission is worse than no number at all
 
-=== PRIORITY 3: UNFLAGGED SPECIFIC CLAIMS ===
-Any specific number without citation AND without [EVIDENCE GAP] flag → add the flag
+=== PRIORITY 2: ADDRESS MISSED SUB-QUESTIONS ===
+Read the MUST FIX and SHOULD FIX sections from the evaluation carefully.
+If a sub-question was missed or underdeveloped:
+- Add a new section/header for it
+- Use capability language if no evidence — do NOT stay silent
+- Keep it proportionate (don't make it longer than other sections)
 
-=== PRIORITY 4: OTHER IMPROVEMENTS ===
-- Remove banned words
-- Name client in sentence before citation
+=== PRIORITY 3: STRENGTHEN CLIENT UNDERSTANDING ===
+The difference between good and outstanding is showing you understand THEIR specific context.
+- If the question mentions a specific concern (disruption, compliance risk, TUPE) — mirror that language back
+- Add one sentence per section showing WHY your approach matters for this specific sector/environment
+- Make it feel like you wrote this FOR them, not as a generic template
+
+=== PRIORITY 4: SHARPEN THE WRITING ===
+- First sentence: does it directly answer the question? If not, rewrite it
+- Remove any banned words (seamless, leverage, holistic, etc.)
+- Name client before every citation
+- Replace hedging language: "would look to" → "will", "aim to" → "deliver"
 
 RULES:
-- Keep 400-500 words
-- EVERY cited number MUST exist VERBATIM in evidence - if not, remove it
-- When in doubt, use capability language without numbers
-
-Output the improved response only. No explanation.`;
+${wordCountRule}
+- EVERY cited number MUST exist VERBATIM in evidence — if not, remove it
+- TARGET 8-12 citations total. Scan the evaluation feedback — if the scorer mentions "evidence available: [ID]" or "could have cited [ID]" or similar, ADD those citations now. Do not leave evidenced points uncited.
+- Output the improved response only. No explanation, no preamble.`;
 
   const prompt = `${improvePrompt}
 
@@ -698,15 +765,16 @@ Write the improved response:`;
 
   const message = await callClaude(
     [{ role: 'user', content: prompt }],
-    { 
+    {
       maxTokens: 4000,
       estimatedInputTokens: estimateTokens(prompt)
     }
   );
-  
+
   const content = message.content[0];
   if (content.type === 'text') {
-    return content.text;
+    // Strip any leaked placeholder markers before returning
+    return content.text.replace(/\[EVIDENCE GAP[^\]]*\]/gi, '').replace(/\[INSERT[^\]]*\]/gi, '').replace(/\[TBC[^\]]*\]/gi, '').replace(/\[PLACEHOLDER[^\]]*\]/gi, '').trim();
   }
   return currentAnswer;
 }
@@ -737,6 +805,12 @@ export async function POST(request: NextRequest) {
     
     const questionData = await qResponse.json();
     const questionText = questionData.response?.question_text;
+
+    // Extract word limit from question text (for use in improve loop)
+    const wordLimitMatch = questionText?.match(/(?:maximum|max|word limit|word count)[:\s]*(\d[\d,]*)\s*words/i)
+      || questionText?.match(/(\d[\d,]*)\s*words?\s*(?:maximum|max|limit)/i);
+    const wordLimit = wordLimitMatch ? parseInt(wordLimitMatch[1].replace(',', '')) : null;
+
     let tenderId = questionData.response?.tender;
     
     console.log('Question data tender field:', tenderId);
@@ -807,7 +881,7 @@ export async function POST(request: NextRequest) {
       console.log(`Loop ${loopCount}: Score ${score} < ${targetScore}, improving...`);
       
       // Improve based on feedback
-      answer = await improveResponse(questionText, answer, evaluation, evidence);
+      answer = await improveResponse(questionText, answer, evaluation, evidence, wordLimit);
       console.log(`Loop ${loopCount}: Improved answer length:`, answer.length);
       
       // Re-score (pass evidence for hallucination checking)
