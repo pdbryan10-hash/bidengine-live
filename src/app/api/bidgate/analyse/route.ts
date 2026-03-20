@@ -211,33 +211,9 @@ Rules:
 - Be specific to this tender — no generic advice
 - Return ONLY the JSON object`;
 
-    const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 8000,
-      messages: [{ role: 'user', content: prompt }],
-    });
-
-    const raw = response.content[0].type === 'text' ? response.content[0].text.trim() : '{}';
-    let analysis: any = {};
-    try {
-      // Strip markdown code fences if present
-      const cleaned = raw.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/i, '').trim();
-      analysis = JSON.parse(cleaned);
-    } catch {
-      // Log the raw output to help debug future issues
-      console.error('Failed to parse analysis JSON. Stop reason:', response.stop_reason, 'Raw (first 500):', raw.slice(0, 500));
-      return NextResponse.json({ error: 'Failed to parse analysis response', stop_reason: response.stop_reason, raw: raw.slice(0, 1000) }, { status: 500 });
-    }
-
-    // Override buyer fields with user-provided values
-    if (analysis.tenderProfile) {
-      if (buyerName) analysis.tenderProfile.buyerOrganisation = buyerName;
-      if (buyerOrgType) analysis.tenderProfile.buyerType = buyerOrgType;
-    }
-
-    // ── 4. Fetch BidLearn context ────────────────────────────────────────────
-    let bidlearnContext = null;
-    if (buyerName || buyerOrgType) {
+    // ── 4. Run Claude + BidLearn fetch in parallel ───────────────────────────
+    const bidlearnPromise = (async (): Promise<any> => {
+      if (!buyerName && !buyerOrgType) return null;
       try {
         const constraints = (extra: object[] = []) =>
           encodeURIComponent(JSON.stringify([
@@ -249,70 +225,85 @@ Rules:
           { key: 'client', constraint_type: 'equals', value: clientId },
           ...(buyerName ? [{ key: 'buyer_name', constraint_type: 'text contains', value: buyerName }] : []),
         ]));
-
         const [profileRes, negInsightsRes, posInsightsRes, outcomesRes] = await Promise.all([
           fetch(`${BUBBLE_BASE}/Buyer_Profile?constraints=${constraints()}&limit=1`, { headers: bh }),
           fetch(`${BUBBLE_BASE}/Outcome_Insight?constraints=${constraints([{ key: 'insight_type', constraint_type: 'equals', value: 'negative' }])}&limit=50`, { headers: bh }),
           fetch(`${BUBBLE_BASE}/Outcome_Insight?constraints=${constraints([{ key: 'insight_type', constraint_type: 'equals', value: 'positive' }])}&limit=50`, { headers: bh }),
           fetch(`${BUBBLE_BASE}/Bid_Outcome?constraints=${outcomeConstraints}&limit=50&sort_field=Created%20Date&descending=true`, { headers: bh }),
         ]);
-
         const profile = profileRes.ok ? (await profileRes.json()).response?.results?.[0] || null : null;
         const negativeInsights = negInsightsRes.ok ? (await negInsightsRes.json()).response?.results || [] : [];
         const positiveInsights = posInsightsRes.ok ? (await posInsightsRes.json()).response?.results || [] : [];
         const outcomes: any[] = outcomesRes.ok ? (await outcomesRes.json()).response?.results || [] : [];
-
-        if (profile || outcomes.length > 0) {
-          const wins = outcomes.filter(o => o.outcome === 'win').length;
-          const losses = outcomes.filter(o => o.outcome === 'loss').length;
-          const winRate = outcomes.length > 0 ? wins / outcomes.length : 0;
-          const catPos: Record<string, number> = {};
-          const catNeg: Record<string, number> = {};
-          positiveInsights.forEach((i: any) => { const c = i.category; if (c) catPos[c] = (catPos[c] || 0) + 1; });
-          negativeInsights.forEach((i: any) => { const c = i.category; if (c) catNeg[c] = (catNeg[c] || 0) + 1; });
-          const strongCats = Object.entries(catPos).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([c]) => c).join(', ');
-          const weakCats = Object.entries(catNeg).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([c]) => c).join(', ');
-          const derivedProfile = profile || {
-            buyer_name: buyerName, total_bids: outcomes.length, wins, losses,
-            win_rate: winRate, last_outcome: outcomes[0]?.outcome,
-            strong_categories: strongCats || null, weak_categories: weakCats || null,
-          };
-          const catLosses: Record<string, number> = {};
-          negativeInsights.forEach((i: any) => { const cat = i.category; if (cat) catLosses[cat] = (catLosses[cat] || 0) + 1; });
-          const lossWarnings = Object.entries(catLosses).sort((a, b) => b[1] - a[1]).slice(0, 3)
-            .map(([cat, count]) => `${count} previous bid${count > 1 ? 's' : ''} with ${buyerName} scored weak on ${cat}`);
-          let sectorProfile = null;
-          const orgType = (profile?.buyer_org_type as string | undefined) || buyerOrgType;
-          if (orgType) {
-            const sRes = await fetch(`${BUBBLE_BASE}/Sector_Profile?constraints=${encodeURIComponent(JSON.stringify([{ key: 'org_type', constraint_type: 'equals', value: orgType }]))}&limit=1`, { headers: bh });
-            if (sRes.ok) sectorProfile = (await sRes.json()).response?.results?.[0] || null;
-          }
-          bidlearnContext = { hasPriorBids: true, profile: derivedProfile, recentInsights: negativeInsights.slice(0, 5), lossWarnings, sectorProfile };
+        if (!profile && outcomes.length === 0) return null;
+        const wins = outcomes.filter(o => o.outcome === 'win').length;
+        const losses = outcomes.filter(o => o.outcome === 'loss').length;
+        const winRate = outcomes.length > 0 ? wins / outcomes.length : 0;
+        const catPos: Record<string, number> = {};
+        const catNeg: Record<string, number> = {};
+        positiveInsights.forEach((i: any) => { const c = i.category; if (c) catPos[c] = (catPos[c] || 0) + 1; });
+        negativeInsights.forEach((i: any) => { const c = i.category; if (c) catNeg[c] = (catNeg[c] || 0) + 1; });
+        const strongCats = Object.entries(catPos).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([c]) => c).join(', ');
+        const weakCats = Object.entries(catNeg).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([c]) => c).join(', ');
+        const derivedProfile = profile || { buyer_name: buyerName, total_bids: outcomes.length, wins, losses, win_rate: winRate, last_outcome: outcomes[0]?.outcome, strong_categories: strongCats || null, weak_categories: weakCats || null };
+        const catLosses: Record<string, number> = {};
+        negativeInsights.forEach((i: any) => { const cat = i.category; if (cat) catLosses[cat] = (catLosses[cat] || 0) + 1; });
+        const lossWarnings = Object.entries(catLosses).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([cat, count]) => `${count} previous bid${count > 1 ? 's' : ''} with ${buyerName} scored weak on ${cat}`);
+        let sectorProfile = null;
+        const orgType = (profile?.buyer_org_type as string | undefined) || buyerOrgType;
+        if (orgType) {
+          const sRes = await fetch(`${BUBBLE_BASE}/Sector_Profile?constraints=${encodeURIComponent(JSON.stringify([{ key: 'org_type', constraint_type: 'equals', value: orgType }]))}&limit=1`, { headers: bh });
+          if (sRes.ok) sectorProfile = (await sRes.json()).response?.results?.[0] || null;
         }
-      } catch { /* non-fatal */ }
+        return { hasPriorBids: true, profile: derivedProfile, recentInsights: negativeInsights.slice(0, 5), lossWarnings, sectorProfile };
+      } catch { return null; }
+    })();
+
+    const response = await anthropic.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 6000,
+      messages: [{ role: 'user', content: prompt }],
+    });
+
+    const raw = response.content[0].type === 'text' ? response.content[0].text.trim() : '{}';
+    let analysis: any = {};
+    try {
+      const cleaned = raw.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/i, '').trim();
+      analysis = JSON.parse(cleaned);
+    } catch {
+      console.error('Failed to parse analysis JSON. Stop reason:', response.stop_reason, 'Raw (first 500):', raw.slice(0, 500));
+      return NextResponse.json({ error: 'Failed to parse analysis response', stop_reason: response.stop_reason, raw: raw.slice(0, 1000) }, { status: 500 });
     }
 
-    // ── 5. Save to BidGate_Analysis in Bubble (non-fatal) ───────────────
+    // Override buyer fields with user-provided values
+    if (analysis.tenderProfile) {
+      if (buyerName) analysis.tenderProfile.buyerOrganisation = buyerName;
+      if (buyerOrgType) analysis.tenderProfile.buyerType = buyerOrgType;
+    }
+
+    // Await BidLearn (already running in parallel with Claude)
+    const bidlearnContext = await bidlearnPromise;
+
+    // ── 5. Save to BidGate_Analysis in Bubble (fire and forget) ─────────────
     const savedName = analysis.tenderProfile?.opportunityName || tenderName || file.name;
     const savedDecision = analysis.recommendation?.decision || null;
     const savedScore = typeof analysis.readinessScore === 'number' ? analysis.readinessScore : (analysis.readinessScore?.overall ?? null);
     const savedWinProb = analysis.competitivePosition?.winProbability || analysis.executiveSummary?.winProbability || null;
-    try {
-      await fetch(`${BUBBLE_BASE}/BidGate_Analysis`, {
-        method: 'POST',
-        headers: { ...bh, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          client_id: clientId,
-          tender_name: savedName,
-          buyer_name: buyerName || null,
-          buyer_org_type: buyerOrgType || null,
-          decision: savedDecision,
-          readiness_score: savedScore,
-          win_probability: savedWinProb,
-          analysis_json: JSON.stringify(analysis),
-        }),
-      });
-    } catch { /* non-fatal — table may not exist yet */ }
+    // Don't await — let it complete in background
+    fetch(`${BUBBLE_BASE}/BidGate_Analysis`, {
+      method: 'POST',
+      headers: { ...bh, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        client_id: clientId,
+        tender_name: savedName,
+        buyer_name: buyerName || null,
+        buyer_org_type: buyerOrgType || null,
+        decision: savedDecision,
+        readiness_score: savedScore,
+        win_probability: savedWinProb,
+        analysis_json: JSON.stringify(analysis),
+      }),
+    }).catch(() => { /* non-fatal — table may not exist yet */ });
 
     return NextResponse.json({
       success: true,
