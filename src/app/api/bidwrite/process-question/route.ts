@@ -176,6 +176,7 @@ Write with authority. You are not trying to impress — you are informing a deci
 - Never apologetic, never hedging on capability
 - "Our approach is X" not "We would look to implement X"
 - "We deliver X" not "We aim/strive/endeavour to deliver X"
+- "We will plan X" not "We can plan X" — never use "can" as a substitute for commitment. Replace: "we can deliver" → "we deliver", "we can plan" → "we will plan", "we are able to" → "we"
 
 === ABSOLUTE RULES ===
 
@@ -419,7 +420,7 @@ WHEN EVIDENCE IS MISSING FOR A SPECIFIC NUMBER:
 === BANNED WORDS - AUTOMATIC FAIL IF USED ===
 
 NEVER use these words (they will cost you 0.5 points EACH):
-leverage, synergy, holistic, bespoke, paradigm, utilise, facilitate, foster, cultivate, cutting-edge, best-in-class, world-class, industry-leading, adept, strive, endeavour, passion, passionate, meticulously, paramount, pivotal, streamlined, designed to ensure, committed to, dedicated to
+leverage, synergy, holistic, bespoke, paradigm, seamless, utilise, facilitate, foster, cultivate, cutting-edge, best-in-class, world-class, industry-leading, adept, strive, endeavour, passion, passionate, meticulously, paramount, pivotal, streamlined, designed to ensure, committed to, dedicated to
 
 ESPECIALLY NEVER USE "SEAMLESS" - use these instead:
 - "seamless transition" → "uninterrupted transition" or "smooth transition"
@@ -474,7 +475,7 @@ Then ONLY deduct for genuine problems.
 - Banned word used = -0.2 each
 - First sentence doesn't answer the question = -0.3
 - Generic writing with no sector/client specificity = -0.2
-- Hedging language ("would look to", "aim to", "strive") = -0.1 per instance
+- Hedging language ("would look to", "aim to", "strive", "we can deliver", "we can plan", "we are able to") = -0.1 per instance
 - Number cited that doesn't exactly match evidence record = -0.3
 
 Maximum deduction: -3.0 (floor of 6.0)
