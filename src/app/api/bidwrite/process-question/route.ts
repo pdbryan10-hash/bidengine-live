@@ -298,10 +298,23 @@ Your opening sentence must be a concrete statement of capability — no preamble
 Template: "We [verb] [topic] through [method 1], [method 2] and [method 3]."
 Example: "We deliver statutory compliance through a structured PPM programme, dedicated compliance management, and real-time monitoring across all contract assets."
 
-OPENING WITH HEADLINE COMMITMENTS: When the evidence library contains a strong headline metric for the topic being asked (100% compliance, 100% PPM completion, zero RIDDOR incidents), lead your opening with that committed outcome — not just the methodology.
-- WEAK: "We ensure full statutory compliance through systematic PPM scheduling..."
-- STRONG: "We will deliver 100% statutory compliance across all building services through systematic PPM scheduling..."
-Future tense ("we will deliver") signals commitment to THIS contract. Present tense ("we ensure") reads as a description of the past. Evaluators scoring bids want to see commitment to them, not a summary of prior practice. Use "we will [X]" in the opening sentence when making a performance commitment, reserving "we [X]" for describing methodology.
+OPENING TENSE — QUESTION TYPE DETERMINES YOUR APPROACH:
+
+Read the question carefully before writing your first sentence. The tense and framing of your opening must match what the question is actually asking.
+
+TYPE A — "How will you ensure...?" / "Describe your approach to..." / "Explain how you will..." / "Detail your approach to..."
+→ These are FORWARD-LOOKING questions. Open with a future commitment using the best headline metric you have.
+→ WEAK: "We ensure full statutory compliance through systematic PPM scheduling..."
+→ STRONG: "We will deliver 100% statutory compliance across all building services through systematic PPM scheduling..."
+→ Future tense ("we will deliver") signals commitment to THIS contract.
+
+TYPE B — "Provide evidence of..." / "Demonstrate how you achieved..." / "What has been your performance in..." / "Give examples of..."
+→ These are EVIDENCE questions. Open by leading with your strongest proven outcome — not a future promise.
+→ WEAK: "We will deliver exceptional health and safety performance through our ISO 45001 system..."
+→ STRONG: "Our ISO 45001-certified Health & Safety Management System has delivered zero RIDDOR reportable incidents across all Hard FM operations, backed by 100% training compliance and a systematic audit programme."
+→ Past tense ("has delivered") signals proven track record. Evaluators asked for evidence want to see proof first, not promises.
+
+RULE: If the question contains "provide evidence", "demonstrate", "give examples", "what has been your", or "show" → open in past tense with your headline result. If the question says "how will you", "describe your approach", "explain how you will" → open in future tense with your commitment.
 
 === STRUCTURE ===
 Each section MUST use a bold header on its OWN LINE — never embedded mid-sentence or mid-paragraph.
@@ -351,6 +364,14 @@ RULES:
 If they ask about HVAC, electrical, water, gas, fire - address EACH ONE with context and expertise.
 If they ask about TUPE - explain the actual process, the human element, the communication approach.
 Show you understand the CLIENT'S world, not just your processes.
+
+FIRE SYSTEMS — NEVER TREAT AS AN AFTERTHOUGHT: Fire compliance is as critical as electrical or water. When fire is mentioned, give it the same depth as other disciplines:
+- Weekly alarm testing (BS 5839-1) — panel function, call points, sounders
+- Monthly emergency lighting checks — duration tests, battery condition
+- Annual full system commissioning — smoke detectors, sprinkler heads, suppression systems
+- Quarterly fire door inspections — gaps, seals, self-closers, signage
+- Certification and remedial action tracking — all defects logged, escalated, and closed
+Do NOT give fire a single generic sentence while electrical and water get full paragraphs. A thin fire section costs marks on every compliance question.
 
 === EVIDENCE INTEGRITY (CRITICAL - THIS IS WHERE YOU LOSE POINTS) ===
 
