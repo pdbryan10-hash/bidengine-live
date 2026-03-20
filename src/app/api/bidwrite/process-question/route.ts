@@ -1,12 +1,9 @@
 export const maxDuration = 180;
 
 import { NextRequest, NextResponse } from 'next/server';
-import { callClaude, rateLimitDelay, logRateLimitStatus, estimateTokens } from '@/lib/claude';
-import { 
-  generateEmbedding, 
-  cosineSimilarity, 
-  hybridSearch, 
-  formatSearchResultsForPrompt,
+import { callClaude, estimateTokens } from '@/lib/claude';
+import {
+  hybridSearch,
   EvidenceWithEmbedding,
   SemanticSearchResult
 } from '@/lib/semantic';
@@ -321,11 +318,12 @@ TYPE A — "How will you ensure...?" / "Describe your approach to..." / "Explain
 
 TYPE B — "Provide evidence of..." / "Demonstrate how you achieved..." / "What has been your performance in..." / "Give examples of..."
 → These are EVIDENCE questions. Open by leading with your strongest proven outcome — not a future promise.
-→ WEAK: "We will deliver exceptional health and safety performance through our ISO 45001 system..."
-→ STRONG: "Our ISO 45001-certified Health & Safety Management System has delivered zero RIDDOR reportable incidents across all Hard FM operations, backed by 100% training compliance and a systematic audit programme."
-→ Past tense ("has delivered") signals proven track record. Evaluators asked for evidence want to see proof first, not promises.
+→ WRONG: "Our ISO 45001-certified Health & Safety Management System will deliver zero RIDDOR incidents..." — "will deliver" is future tense on an evidence question. WRONG.
+→ WRONG: "We will deliver exceptional health and safety performance through our ISO 45001 system..." — same error.
+→ RIGHT: "Our ISO 45001-certified Health & Safety Management System has delivered zero RIDDOR reportable incidents, backed by 100% training compliance and 88 site safety audits completed in the last 12 months."
+→ The verb MUST be past or present tense: "has delivered", "delivers", "achieved", "maintains". Never "will deliver" on a Type B question.
 
-RULE: If the question contains "provide evidence", "demonstrate", "give examples", "what has been your", or "show" → open in past tense with your headline result. If the question says "how will you", "describe your approach", "explain how you will" → open in future tense with your commitment.
+RULE: If the question contains "provide evidence", "demonstrate", "give examples", "what has been your", or "show" → open in past/present tense with your headline result. If the question says "how will you", "describe your approach", "explain how you will" → open in future tense with your commitment.
 
 === STRUCTURE ===
 Each section MUST use a bold header on its OWN LINE — never embedded mid-sentence or mid-paragraph.
@@ -409,6 +407,7 @@ COMMON HALLUCINATION MISTAKES (these will cost you 0.5+ points each):
 ✗ Adding activities or deliverables not in evidence → HALLUCINATED. EXAMPLE: evidence says "Asset validation of 4,620 assets" — you write "asset validation of 4,620 assets, PPM schedule build, and compliance calendar issued" — WRONG. Only the asset validation is in the evidence. Do NOT append related activities, outcomes, or deliverables that are not in the title, value, or source_text fields. If you want to describe those activities, write them as capability (no citation), separate from the evidence citation.
 ✗ Claiming "zero RIDDOR" when evidence shows any other number → CRITICAL ERROR
 ✗ Pairing a real stat with a made-up companion: "980 observations and 296 toolbox talks" — if only 980 is evidenced, write ONLY "980 observations", not both → HALLUCINATED COMPANION STAT
+✗ Adding workforce headcount or team composition not in evidence → HALLUCINATED. EXAMPLE: evidence says "100% mandatory H&S training completion" — you write "100% mandatory H&S training completion across our entire workforce of 385 staff, including 142 M&E engineers and 58 electricians" — WRONG. The headcount figures are not in the evidence. Write only "100% mandatory H&S training completion" and nothing more. Staff counts, team breakdowns, and role compositions CANNOT be inferred or added unless they appear verbatim in the evidence.
 
 RIDDOR CLAIMS - EXTREME CAUTION:
 - ONLY claim "zero RIDDOR" if the evidence EXPLICITLY states "0" or "zero"
