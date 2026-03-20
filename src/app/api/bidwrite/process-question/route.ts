@@ -298,6 +298,11 @@ Your opening sentence must be a concrete statement of capability — no preamble
 Template: "We [verb] [topic] through [method 1], [method 2] and [method 3]."
 Example: "We deliver statutory compliance through a structured PPM programme, dedicated compliance management, and real-time monitoring across all contract assets."
 
+OPENING WITH HEADLINE COMMITMENTS: When the evidence library contains a strong headline metric for the topic being asked (100% compliance, 100% PPM completion, zero RIDDOR incidents), lead your opening with that committed outcome — not just the methodology.
+- WEAK: "We ensure full statutory compliance through systematic PPM scheduling..."
+- STRONG: "We will deliver 100% statutory compliance across all building services through systematic PPM scheduling..."
+Future tense ("we will deliver") signals commitment to THIS contract. Present tense ("we ensure") reads as a description of the past. Evaluators scoring bids want to see commitment to them, not a summary of prior practice. Use "we will [X]" in the opening sentence when making a performance commitment, reserving "we [X]" for describing methodology.
+
 === STRUCTURE ===
 Each section MUST use a bold header on its OWN LINE — never embedded mid-sentence or mid-paragraph.
 
@@ -361,6 +366,7 @@ COMMON HALLUCINATION MISTAKES (these will cost you 0.5+ points each):
 ✗ Citing a number not in the evidence record → HALLUCINATED
 ✗ Rounding numbers (99.1% → 99%) → WRONG NUMBER
 ✗ Adding scope/geography qualifiers not in evidence → HALLUCINATED. EXAMPLE: evidence says "47 staff transferred" — you write "47 staff across 6 hospital sites" — WRONG. The site count is not in the evidence. Write ONLY what the evidence states, verbatim. Building counts, site counts, geographic scope, and organisational scale CANNOT be inferred or added.
+✗ Adding activities or deliverables not in evidence → HALLUCINATED. EXAMPLE: evidence says "Asset validation of 4,620 assets" — you write "asset validation of 4,620 assets, PPM schedule build, and compliance calendar issued" — WRONG. Only the asset validation is in the evidence. Do NOT append related activities, outcomes, or deliverables that are not in the title, value, or source_text fields. If you want to describe those activities, write them as capability (no citation), separate from the evidence citation.
 ✗ Claiming "zero RIDDOR" when evidence shows any other number → CRITICAL ERROR
 ✗ Pairing a real stat with a made-up companion: "980 observations and 296 toolbox talks" — if only 980 is evidenced, write ONLY "980 observations", not both → HALLUCINATED COMPANION STAT
 
