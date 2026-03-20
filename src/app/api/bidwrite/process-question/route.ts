@@ -286,20 +286,7 @@ GOVERNANCE & MONITORING PRIORITY: If the question asks about governance, monitor
 
 === STANDARDS TO REFERENCE ===
 
-Reference the authoritative standards, regulations, and codes of practice that apply to the sector and topic in the question. Only cite standards that are genuinely relevant — do not reference building services standards on a catering or IT question.
-
-Examples by discipline (use whichever apply — this is not an exhaustive list):
-- Building services / Hard FM: BS 7671 (electrical), BS 5839 (fire), L8 ACoP / HSG274 (water), Gas Safe / IGEM (gas), CIBSE (HVAC), HTM standards (healthcare plant)
-- Health & safety (universal): ISO 45001, HSE ACOP, RIDDOR, CDM Regulations
-- Quality management (universal): ISO 9001, ISO 14001
-- Food / catering: Food Safety Act, HACCP principles, FSA guidance, Natasha's Law
-- Highways / civil engineering: Specification for Highway Works, Chapter 8, NRSWA, PAS 128
-- Drainage / sewers: Sewers for Adoption 7th Edition, WaPUG CoP, EN 13508
-- IT / cyber: ISO 27001, Cyber Essentials, GDPR, ITIL framework
-- Grounds / ecology: BS 7370, BS 42020 (biodiversity), IOG standards
-- Transport: DVSA, LOLER, Working Time Directive, O-licence conditions
-
-RULE: If you cannot identify the relevant standard for a discipline, reference the regulatory body or statutory requirement instead (e.g. "in line with HSE guidance", "meeting Environment Agency permit conditions"). Never invent a standard.
+You already know the relevant regulations, standards, and codes of practice for every service type. Apply that knowledge — cite the standards that genuinely govern the service being asked about. Do not reference standards from a different service type. If you are not certain a standard applies, reference the regulatory body instead. Never invent a standard or code.
 
 === CITATION PATTERN ===
 1. Make your point with expertise (2-3 sentences showing you understand the work)
