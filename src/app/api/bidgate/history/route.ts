@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
     }));
 
     return NextResponse.json({ analyses: results });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ analyses: [] });
   }
 }

@@ -3,7 +3,7 @@
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Shield, RefreshCw, Calendar, Building2, TrendingUp, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Shield, RefreshCw, Calendar, Building2, ChevronRight } from 'lucide-react';
 import Image from 'next/image';
 import { UserButton } from '@clerk/nextjs';
 
@@ -31,8 +31,31 @@ export default function BidGateHistoryPage() {
   useEffect(() => {
     fetch(`/api/bidgate/history?clientId=${clientId}`)
       .then(r => r.json())
-      .then(data => { setAnalyses(data.analyses || []); setLoading(false); })
-      .catch(() => { setError('Failed to load history'); setLoading(false); });
+      .then(data => {
+        const bubbleItems: AnalysisSummary[] = data.analyses || [];
+        // Merge localStorage backups for any analyses not yet in Bubble
+        try {
+          const local: AnalysisSummary[] = JSON.parse(localStorage.getItem(`bidgate_history_${clientId}`) || '[]');
+          const bubbleNames = new Set(bubbleItems.map(a => a.tender_name + a.created_date?.slice(0, 10)));
+          const localOnly = local.filter(a => !bubbleNames.has(a.tender_name + a.created_date?.slice(0, 10)));
+          const merged = [...bubbleItems, ...localOnly].sort((a, b) =>
+            new Date(b.created_date).getTime() - new Date(a.created_date).getTime()
+          );
+          setAnalyses(merged);
+        } catch {
+          setAnalyses(bubbleItems);
+        }
+        setLoading(false);
+      })
+      .catch(() => {
+        // Bubble unavailable — fall back to localStorage entirely
+        try {
+          const local: AnalysisSummary[] = JSON.parse(localStorage.getItem(`bidgate_history_${clientId}`) || '[]');
+          setAnalyses(local);
+        } catch { setAnalyses([]); }
+        setError(null);
+        setLoading(false);
+      });
   }, [clientId]);
 
   const openAnalysis = (a: AnalysisSummary) => {
@@ -57,7 +80,7 @@ export default function BidGateHistoryPage() {
     if (d === 'NO BID') return 'text-red-400 bg-red-500/10 border-red-500/30';
     return 'text-amber-400 bg-amber-500/10 border-amber-500/30';
   };
-  const decisionLabel = (d: string | null) => d === 'BID' ? 'GO' : d === 'NO BID' ? 'NO-GO' : 'CONDITIONAL';
+  const decisionLabel = (d: string | null) => d === 'BID' ? 'GO' : d === 'NO BID' ? 'NO-GO' : 'PENDING';
 
   const formatDate = (s: string) => {
     try { return new Date(s).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }); } catch { return s; }
@@ -83,7 +106,7 @@ export default function BidGateHistoryPage() {
             <button onClick={() => router.push(`/v/${clientId}/upload/bidgate`)} className="px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-sm font-semibold rounded-lg hover:opacity-90">
               + New Analysis
             </button>
-            <button onClick={() => router.push(`/v/${clientId}`)} className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-sm text-gray-300">← Dashboard</button>
+            <button onClick={() => router.push(`/v/${clientId}`)} className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-sm text-gray-300">Dashboard</button>
             <UserButton afterSignOutUrl="/" />
           </div>
         </div>
@@ -102,7 +125,6 @@ export default function BidGateHistoryPage() {
           <div className="text-center py-24">
             <Shield className="text-gray-600 mx-auto mb-4" size={48} />
             <p className="text-gray-400 mb-2">{error}</p>
-            <p className="text-gray-600 text-sm">Create a <strong className="text-gray-400">BidGate_Analysis</strong> table in Bubble with fields: client_id, tender_name, buyer_name, buyer_org_type, decision, readiness_score, win_probability, analysis_json</p>
           </div>
         )}
 
