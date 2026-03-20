@@ -359,7 +359,7 @@ BEFORE WRITING ANY CITATION, DO THIS CHECK:
 COMMON HALLUCINATION MISTAKES (these will cost you 0.5+ points each):
 ✗ Citing a number not in the evidence record → HALLUCINATED
 ✗ Rounding numbers (99.1% → 99%) → WRONG NUMBER
-✗ Adding context not stated ("across 6 sites" when evidence doesn't say) → HALLUCINATED
+✗ Adding scope/geography qualifiers not in evidence → HALLUCINATED. EXAMPLE: evidence says "47 staff transferred" — you write "47 staff across 6 hospital sites" — WRONG. The site count is not in the evidence. Write ONLY what the evidence states, verbatim. Building counts, site counts, geographic scope, and organisational scale CANNOT be inferred or added.
 ✗ Claiming "zero RIDDOR" when evidence shows any other number → CRITICAL ERROR
 ✗ Pairing a real stat with a made-up companion: "980 observations and 296 toolbox talks" — if only 980 is evidenced, write ONLY "980 observations", not both → HALLUCINATED COMPANION STAT
 
