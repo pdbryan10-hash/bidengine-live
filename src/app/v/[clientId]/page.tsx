@@ -334,7 +334,7 @@ export default function DashboardPage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="grid grid-cols-4 gap-6 mb-10"
+          className="grid grid-cols-5 gap-6 mb-10"
         >
           {navModules.map((module, index) => {
             const ringColor = module.glowColor === 'purple' ? '#a855f7' : 

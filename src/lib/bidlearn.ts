@@ -1,6 +1,6 @@
 import { BidOutcome, BuyerProfile, OutcomeInsight } from '@/types';
 
-const BUBBLE_API_KEY = process.env.NEXT_PUBLIC_BUBBLE_API_KEY || process.env.BUBBLE_API_KEY || '';
+const BUBBLE_API_KEY = process.env.NEXT_PUBLIC_BUBBLE_API_KEY || process.env.BUBBLE_API_KEY || '33cb561a966f59ad7ea5e29a1906bf36';
 const BUBBLE_API_BASE = 'https://bidenginev1.bubbleapps.io/version-test/api/1.1/obj';
 
 const headers = () => ({ 'Authorization': `Bearer ${BUBBLE_API_KEY}`, 'Content-Type': 'application/json' });

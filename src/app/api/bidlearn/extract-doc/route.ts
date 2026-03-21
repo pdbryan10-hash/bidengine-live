@@ -2,7 +2,9 @@ export const maxDuration = 60;
 
 import { NextRequest, NextResponse } from 'next/server';
 import mammoth from 'mammoth';
-import pdfParse from 'pdf-parse';
+// Use lib path to avoid pdf-parse loading test files at init time in serverless
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const pdfParse = require('pdf-parse/lib/pdf-parse.js');
 
 export async function POST(request: NextRequest) {
   try {

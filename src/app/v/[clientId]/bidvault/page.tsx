@@ -9,7 +9,7 @@ import {
   Calendar, ChevronDown, Clock, Info, HelpCircle,
   TrendingUp, Users, Shield, Lightbulb, Award,
   Leaf, Package, MessageSquare, BookOpen, AlertTriangle,
-  Zap, X, ChevronRight, Building2
+  Zap, X, ChevronRight, Building2, Globe
 } from 'lucide-react';
 import { fetchEvidenceCounts, EvidenceCounts } from '@/lib/bubble';
 import ClientBadge from '@/components/ClientBadge';
@@ -46,6 +46,12 @@ interface EvidenceRecord {
   'Created Date'?: string;
 }
 
+interface SectorGroup {
+  sector_name: string;
+  records: EvidenceRecord[];
+  categories: string[];
+}
+
 interface ContractGroup {
   client_name: string;
   records: EvidenceRecord[];
@@ -77,7 +83,7 @@ export default function BidVaultPage() {
   const [evidenceCounts, setEvidenceCounts] = useState<EvidenceCounts>({});
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState<'browse' | 'contracts' | 'retrieval'>('browse');
+  const [activeTab, setActiveTab] = useState<'browse' | 'contracts' | 'sectors' | 'retrieval'>('browse');
 
   // Retrieval state
   const [retrievalQuery, setRetrievalQuery] = useState('');
@@ -94,6 +100,12 @@ export default function BidVaultPage() {
   const [expandedContract, setExpandedContract] = useState<string | null>(null);
   const [contractSearch, setContractSearch] = useState('');
 
+  // Sector grouping state
+  const [sectors, setSectors] = useState<SectorGroup[]>([]);
+  const [sectorsLoading, setSectorsLoading] = useState(false);
+  const [expandedSector, setExpandedSector] = useState<string | null>(null);
+  const [sectorSearch, setSectorSearch] = useState('');
+
   useEffect(() => {
     async function loadEvidence() {
       setLoading(true);
@@ -107,6 +119,7 @@ export default function BidVaultPage() {
   useEffect(() => {
     if (activeTab === 'retrieval') setTimeout(() => inputRef.current?.focus(), 100);
     if (activeTab === 'contracts' && contracts.length === 0) loadContracts();
+    if (activeTab === 'sectors' && sectors.length === 0) loadSectors();
   }, [activeTab]);
 
   const loadContracts = async () => {
@@ -140,12 +153,43 @@ export default function BidVaultPage() {
     }
   };
 
+  const loadSectors = async () => {
+    setSectorsLoading(true);
+    try {
+      const res = await fetch(`/api/bidvault/records?clientId=${clientId}`);
+      const data = await res.json();
+      const records: EvidenceRecord[] = data.records || [];
+
+      const map = new Map<string, EvidenceRecord[]>();
+      for (const r of records) {
+        const key = r.sector || 'Unknown Sector';
+        if (!map.has(key)) map.set(key, []);
+        map.get(key)!.push(r);
+      }
+
+      const groups: SectorGroup[] = Array.from(map.entries())
+        .map(([sector_name, recs]) => ({
+          sector_name,
+          records: recs.sort((a, b) => (b['Created Date'] || '').localeCompare(a['Created Date'] || '')),
+          categories: Array.from(new Set(recs.map(r => r.category || 'OTHER'))),
+        }))
+        .sort((a, b) => b.records.length - a.records.length);
+
+      setSectors(groups);
+    } catch {
+      // silently fail
+    } finally {
+      setSectorsLoading(false);
+    }
+  };
+
   const handleRefresh = async () => {
     setLoading(true);
     const counts = await fetchEvidenceCounts(clientId);
     setEvidenceCounts(counts);
     setLoading(false);
     if (activeTab === 'contracts') loadContracts();
+    if (activeTab === 'sectors') loadSectors();
   };
 
   const handleRetrievalSearch = async () => {
@@ -192,6 +236,10 @@ export default function BidVaultPage() {
 
   const filteredContracts = contracts.filter(c =>
     !contractSearch || c.client_name.toLowerCase().includes(contractSearch.toLowerCase())
+  );
+
+  const filteredSectors = sectors.filter(s =>
+    !sectorSearch || s.sector_name.toLowerCase().includes(sectorSearch.toLowerCase())
   );
 
   return (
@@ -272,6 +320,7 @@ export default function BidVaultPage() {
           {([
             { key: 'browse', icon: Database, label: 'Browse Library', colour: 'bg-purple-500/30 text-white border border-purple-500/40' },
             { key: 'contracts', icon: Building2, label: 'By Contract', colour: 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' },
+            { key: 'sectors', icon: Globe, label: 'By Sector', colour: 'bg-amber-500/20 text-amber-300 border border-amber-500/30' },
             { key: 'retrieval', icon: Zap, label: 'Test Retrieval', colour: 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30' },
           ] as const).map(tab => (
             <button
@@ -448,6 +497,92 @@ export default function BidVaultPage() {
                     <div className="text-center py-16 text-gray-600">
                       <Building2 size={40} className="mx-auto mb-3 opacity-30" />
                       <p className="text-sm">{contractSearch ? 'No clients match that search' : 'No records found'}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </motion.div>
+          )}
+
+          {/* BY SECTOR TAB */}
+          {activeTab === 'sectors' && (
+            <motion.div key="sectors" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.15 }}>
+              <div className="mb-6 p-4 bg-amber-500/5 border border-amber-500/20 rounded-xl">
+                <div className="flex items-start gap-3">
+                  <Globe size={18} className="text-amber-400 mt-0.5 shrink-0" />
+                  <p className="text-sm text-amber-300">All evidence grouped by sector. See the depth of your experience across markets.</p>
+                </div>
+              </div>
+
+              <div className="mb-6">
+                <div className="relative max-w-md">
+                  <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+                  <input type="text" value={sectorSearch} onChange={e => setSectorSearch(e.target.value)}
+                    placeholder="Search sectors..."
+                    className="w-full pl-10 pr-4 py-2.5 bg-white/5 border border-white/10 rounded-lg focus:outline-none focus:border-amber-500/50 transition-colors text-white" />
+                </div>
+              </div>
+
+              {sectorsLoading ? (
+                <div className="flex flex-col items-center justify-center py-20 gap-3">
+                  <RefreshCw size={28} className="text-amber-400 animate-spin" />
+                  <p className="text-gray-500 text-sm">Loading all records...</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {filteredSectors.map((group, index) => (
+                    <motion.div key={group.sector_name} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.03 }}
+                      className="border border-white/10 rounded-xl overflow-hidden hover:border-white/20 transition-colors">
+                      <button
+                        onClick={() => setExpandedSector(expandedSector === group.sector_name ? null : group.sector_name)}
+                        className="w-full flex items-center gap-4 p-4 text-left"
+                      >
+                        <div className="p-2 bg-amber-500/20 rounded-lg shrink-0"><Globe size={18} className="text-amber-400" /></div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-white font-medium">{group.sector_name}</p>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {group.categories.slice(0, 5).map(cat => (
+                              <span key={cat} className="text-[10px] text-gray-500 bg-white/5 px-1.5 py-0.5 rounded uppercase">{cat.replace('_', ' ')}</span>
+                            ))}
+                            {group.categories.length > 5 && <span className="text-[10px] text-gray-600">+{group.categories.length - 5} more</span>}
+                          </div>
+                        </div>
+                        <span className="text-sm font-bold text-amber-400 shrink-0">{group.records.length} records</span>
+                        <ChevronDown size={16} className={`text-gray-500 shrink-0 transition-transform ${expandedSector === group.sector_name ? 'rotate-180' : ''}`} />
+                      </button>
+
+                      <AnimatePresence>
+                        {expandedSector === group.sector_name && (
+                          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2 }}
+                            className="border-t border-white/10 overflow-hidden">
+                            <div className="divide-y divide-white/5">
+                              {group.records.map(r => (
+                                <div key={r._id} className="flex items-center gap-3 px-4 py-3 hover:bg-white/3 transition-colors">
+                                  <CategoryBadge category={r.category || 'OTHER'} />
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm text-white truncate">{r.title || '(untitled)'}</p>
+                                    {r.client_name && <p className="text-xs text-gray-500 truncate">{r.client_name}</p>}
+                                    {r.value && <p className="text-xs text-amber-400 truncate">{r.value}</p>}
+                                  </div>
+                                  <button
+                                    onClick={() => router.push(`/v/${clientId}/bidvault/${r.category || 'OTHER'}?highlight=${r._id}`)}
+                                    className="shrink-0 text-xs text-gray-500 hover:text-purple-400 transition-colors flex items-center gap-1"
+                                  >
+                                    View <ChevronRight size={12} />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </motion.div>
+                  ))}
+
+                  {filteredSectors.length === 0 && !sectorsLoading && (
+                    <div className="text-center py-16 text-gray-600">
+                      <Globe size={40} className="mx-auto mb-3 opacity-30" />
+                      <p className="text-sm">{sectorSearch ? 'No sectors match that search' : 'No records found'}</p>
                     </div>
                   )}
                 </div>
