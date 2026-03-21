@@ -233,6 +233,18 @@ export default function DashboardPage() {
       glowColor: 'emerald',
       icon: CheckCircle,
       disabled: false
+    },
+    {
+      name: 'BidLearn',
+      description: 'Outcome Intelligence',
+      logo: '/bidlearn-logo.svg',
+      href: `/v/${clientId}/bidlearn`,
+      color: 'from-cyan-500/20 to-teal-600/10',
+      borderColor: 'border-cyan-500/30',
+      hoverBorder: 'hover:border-cyan-400/60',
+      glowColor: 'cyan',
+      icon: TrendingUp,
+      disabled: false
     }
   ];
 
