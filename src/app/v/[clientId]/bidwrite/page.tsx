@@ -14,6 +14,7 @@ import { fetchTenders, fetchQuestions, updateQuestion, parseFullEvaluation, extr
 import { TenderQuestion, Tender } from '@/types';
 import { ExportModal } from '@/components/ExportModal';
 import ClientBadge from '@/components/ClientBadge';
+import TenderOutcomeButton from '@/components/TenderOutcomeButton';
 
 const BUBBLE_API_KEY = '33cb561a966f59ad7ea5e29a1906bf36';
 const BUBBLE_API_BASE = 'https://bidenginev1.bubbleapps.io/version-test/api/1.1/obj';
@@ -1402,12 +1403,13 @@ export default function BidWritePage() {
                     <h1 className="text-xl font-bold text-white">{selectedTender.tender_name}</h1>
                     <div className="flex items-center gap-4 text-sm text-gray-500">
                       <span>{stats.total} Questions</span>
-                      <span 
+                      <span
                         className={`font-bold ${stats.avgScore >= 8 ? 'text-emerald-400' : stats.avgScore >= 6 ? 'text-amber-400' : 'text-gray-400'} cursor-help`}
                         title="Scored against buyer criteria: compliance, evidence strength, specificity, structure, and governance"
                       >
                         Avg: {stats.avgScore > 0 ? stats.avgScore.toFixed(1) : '-'}/10
                       </span>
+                      <span className="font-mono text-gray-600 text-xs" title="Tender ID">{selectedTender._id}</span>
                     </div>
                   </div>
                 </div>
@@ -1429,6 +1431,12 @@ export default function BidWritePage() {
                     ) : null;
                   })()}
                   
+                  <TenderOutcomeButton
+                    tenderId={selectedTender._id}
+                    tenderName={selectedTender.tender_name}
+                    clientId={clientId}
+                  />
+
                   {/* Status Filter Buttons */}
                   <div className="flex items-center gap-1 bg-white/5 rounded-lg p-1">
                     {[

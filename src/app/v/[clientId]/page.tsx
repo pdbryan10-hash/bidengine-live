@@ -14,6 +14,7 @@ import { fetchTenders, fetchEvidenceCounts, fetchClientById, checkIsAdmin, Evide
 import SubscriptionBanner from '@/components/SubscriptionBanner';
 import ClientBadge from '@/components/ClientBadge';
 import AdminClientSelector from '@/components/AdminClientSelector';
+import TenderOutcomeButton from '@/components/TenderOutcomeButton';
 
 
 interface Tender {
@@ -514,22 +515,31 @@ export default function DashboardPage() {
                       </span>
                     </div>
                     
-                    {/* Status Counts */}
-                    <div className="flex gap-3 pt-3 border-t border-white/5">
-                      <div className="flex items-center gap-1.5 text-xs">
-                        <div className="w-2 h-2 rounded-full bg-amber-400" />
-                        <span className="text-gray-400">{tender.draftCount}</span>
-                        <span className="text-gray-600">Draft</span>
+                    {/* Status Counts + Record Outcome */}
+                    <div className="flex items-center justify-between pt-3 border-t border-white/5">
+                      <div className="flex gap-3">
+                        <div className="flex items-center gap-1.5 text-xs">
+                          <div className="w-2 h-2 rounded-full bg-amber-400" />
+                          <span className="text-gray-400">{tender.draftCount}</span>
+                          <span className="text-gray-600">Draft</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-xs">
+                          <div className="w-2 h-2 rounded-full bg-blue-400" />
+                          <span className="text-gray-400">{tender.reviewCount}</span>
+                          <span className="text-gray-600">Review</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-xs">
+                          <div className="w-2 h-2 rounded-full bg-emerald-400" />
+                          <span className="text-gray-400">{tender.finalCount}</span>
+                          <span className="text-gray-600">Final</span>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-1.5 text-xs">
-                        <div className="w-2 h-2 rounded-full bg-blue-400" />
-                        <span className="text-gray-400">{tender.reviewCount}</span>
-                        <span className="text-gray-600">Review</span>
-                      </div>
-                      <div className="flex items-center gap-1.5 text-xs">
-                        <div className="w-2 h-2 rounded-full bg-emerald-400" />
-                        <span className="text-gray-400">{tender.finalCount}</span>
-                        <span className="text-gray-600">Final</span>
+                      <div onClick={e => e.stopPropagation()}>
+                        <TenderOutcomeButton
+                          tenderId={tender._id}
+                          tenderName={tender.tender_name}
+                          clientId={clientId}
+                        />
                       </div>
                     </div>
                   </div>
