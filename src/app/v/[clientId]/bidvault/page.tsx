@@ -557,19 +557,18 @@ export default function BidVaultPage() {
                             className="border-t border-white/10 overflow-hidden">
                             <div className="divide-y divide-white/5">
                               {group.records.map(r => (
-                                <div key={r._id} className="flex items-center gap-3 px-4 py-3 hover:bg-white/3 transition-colors">
+                                <div
+                                  key={r._id}
+                                  onClick={() => router.push(`/v/${clientId}/bidvault/${r.category || 'OTHER'}?highlight=${r._id}`)}
+                                  className="flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors cursor-pointer group/row"
+                                >
                                   <CategoryBadge category={r.category || 'OTHER'} />
                                   <div className="flex-1 min-w-0">
-                                    <p className="text-sm text-white truncate">{r.title || '(untitled)'}</p>
+                                    <p className="text-sm text-white truncate group-hover/row:text-amber-300 transition-colors">{r.title || '(untitled)'}</p>
                                     {r.client_name && <p className="text-xs text-gray-500 truncate">{r.client_name}</p>}
                                     {r.value && <p className="text-xs text-amber-400 truncate">{r.value}</p>}
                                   </div>
-                                  <button
-                                    onClick={() => router.push(`/v/${clientId}/bidvault/${r.category || 'OTHER'}?highlight=${r._id}`)}
-                                    className="shrink-0 text-xs text-gray-500 hover:text-purple-400 transition-colors flex items-center gap-1"
-                                  >
-                                    View <ChevronRight size={12} />
-                                  </button>
+                                  <ChevronRight size={14} className="shrink-0 text-gray-600 group-hover/row:text-amber-400 transition-colors" />
                                 </div>
                               ))}
                             </div>

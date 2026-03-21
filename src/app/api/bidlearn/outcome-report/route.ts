@@ -44,6 +44,19 @@ export async function POST(req: Request) {
     const buyerName: string = outcome.buyer_name || 'Unknown Buyer';
     const outcomeResult: string = outcome.outcome || 'unknown';
 
+    // Return cached report instantly if already analysed
+    if (outcome.report_json) {
+      try {
+        const cached = JSON.parse(outcome.report_json);
+        return NextResponse.json({
+          questions: cached,
+          tenderName, buyerName, outcomeResult, feedbackRaw,
+          hasFeedback: !!feedbackRaw, hasQuestions: cached.length > 0,
+          fromCache: true,
+        });
+      } catch { /* fall through to re-analyse */ }
+    }
+
     // Fetch Q&As if tender linked
     let questions: any[] = [];
     if (tenderId) {
@@ -120,6 +133,13 @@ Return ONLY a valid JSON array of ${questions.length} objects. No markdown. No e
     } catch {
       report = [];
     }
+
+    // Cache the report in Bubble so repeat visits are instant
+    fetch(`${BUBBLE_API_BASE}/Bid_Outcome/${outcomeId}`, {
+      method: 'PATCH',
+      headers: bHeaders,
+      body: JSON.stringify({ report_json: JSON.stringify(report) }),
+    }).catch(() => {}); // non-fatal
 
     return NextResponse.json({
       questions: report,

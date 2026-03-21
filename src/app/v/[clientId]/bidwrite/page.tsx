@@ -1332,8 +1332,8 @@ export default function BidWritePage() {
                       
                       {/* Date */}
                       <p className="text-gray-500 text-xs mb-4">
-                        {tender.Created_Date 
-                          ? new Date(tender.Created_Date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+                        {(tender as any)['Created Date']
+                          ? new Date((tender as any)['Created Date']).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
                           : 'No date'
                         }
                       </p>
