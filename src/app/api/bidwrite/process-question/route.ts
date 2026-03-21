@@ -7,6 +7,7 @@ import {
   EvidenceWithEmbedding,
   SemanticSearchResult
 } from '@/lib/semantic';
+import { fetchBuyerProfile, fetchOutcomeInsights, formatBuyerContextForPrompt } from '@/lib/bidlearn';
 
 const BUBBLE_API_URL = 'https://bidenginev1.bubbleapps.io/version-test/api/1.1/obj';
 const BUBBLE_API_KEY = process.env.BUBBLE_API_KEY || '33cb561a966f59ad7ea5e29a1906bf36';
@@ -240,6 +241,15 @@ Apply the same logic to any sector not listed.
 - Never: leverage, synergy, holistic, bespoke, paradigm, seamless, utilise, facilitate, foster, cultivate, cutting-edge, best-in-class, world-class, industry-leading, strive, endeavour, passionate, meticulously, paramount, pivotal, streamlined
 - If the question uses a banned word (e.g. "seamless service continuity"), do NOT echo it — substitute: "uninterrupted", "continuous", "consistent"
 
+=== BUYER INTELLIGENCE ===
+
+If a BUYER INTELLIGENCE block appears below, use it to sharpen the response:
+- If win rate is high (60%+): lead with confidence — this buyer knows your work
+- Prioritise evidence from the CATEGORIES THAT SCORE WELL list
+- Address CATEGORIES THAT SCORE POORLY with extra evidence depth
+- Apply WHAT THIS BUYER VALUES as a lens on which aspects to emphasise
+- Treat WARNINGS as Must-Fix priorities — these are real past loss reasons
+
 === EVIDENCE TABLE ===
 
 End your response with each cited record on its own line, in citation number order:
@@ -341,8 +351,9 @@ A response with even one fabricated stat loses trust entirely in a real evaluati
 🟢 COULD FIX: [Polish items — or "None"]`;
 
 // Generate response using Claude
-async function generateResponse(questionText: string, evidence: string, targetSector?: string): Promise<string> {
+async function generateResponse(questionText: string, evidence: string, targetSector?: string, buyerContext?: string): Promise<string> {
   const sectorContext = targetSector ? `\nTARGET SECTOR: ${targetSector}\nLead with evidence from ${targetSector} sector clients first.\n` : '';
+  const buyerSection = buyerContext ? `\n\n=== BUYER INTELLIGENCE ===\n${buyerContext}\n=== END BUYER INTELLIGENCE ===\n` : '';
   
   // Detect explicit exceed signals
   const exceedPatterns = [
@@ -410,7 +421,7 @@ The evaluator has given you ${wordLimit} words for a reason. Using only 60% sign
 
   console.log('Exceed detection:', hasExceedSignal ? 'EXPLICIT SIGNAL' : wordLimit && wordLimit >= 750 ? `HEADROOM (${wordLimit} words)` : 'NONE');
 
-  const prompt = `${BIDWRITE_PROMPT}\n\n---${sectorContext}${exceedInstruction}\nQUESTION:\n${questionText}\n\nEVIDENCE LIBRARY (use only this evidence):\n${evidence}\n\nWrite the response:`;
+  const prompt = `${BIDWRITE_PROMPT}\n\n---${sectorContext}${buyerSection}${exceedInstruction}\nQUESTION:\n${questionText}\n\nEVIDENCE LIBRARY (use only this evidence):\n${evidence}\n\nWrite the response:`;
   
   const message = await callClaude(
     [{ role: 'user', content: prompt }],
@@ -629,8 +640,9 @@ export async function POST(request: NextRequest) {
       tenderId = tenderId._id || tenderId.id;
     }
     
-    // Get tender sector for evidence matching
+    // Get tender sector and buyer name for evidence matching and buyer intelligence
     let tenderSector: string | undefined;
+    let buyerName: string | undefined;
     if (tenderId) {
       try {
         console.log('Fetching tender:', tenderId);
@@ -641,7 +653,9 @@ export async function POST(request: NextRequest) {
           const tenderData = await tenderResponse.json();
           console.log('Tender data:', JSON.stringify(tenderData.response).substring(0, 500));
           tenderSector = tenderData.response?.sector;
-          console.log('Tender sector for evidence matching:', tenderSector || 'Not set');
+          buyerName = tenderData.response?.buyer_name || tenderData.response?.buyer || tenderData.response?.contracting_authority;
+          console.log('Tender sector:', tenderSector || 'Not set');
+          console.log('Buyer name:', buyerName || 'Not set');
         } else {
           console.log('Tender fetch failed:', tenderResponse.status);
         }
@@ -650,6 +664,28 @@ export async function POST(request: NextRequest) {
       }
     } else {
       console.log('No tender ID found on question');
+    }
+
+    // Fetch buyer intelligence from BidLearn if buyer name is known
+    let buyerContext: string | undefined;
+    if (buyerName && client_id) {
+      try {
+        const [profile, insights] = await Promise.all([
+          fetchBuyerProfile(client_id, buyerName),
+          fetchOutcomeInsights(client_id, buyerName),
+        ]);
+        if (profile && profile.total_bids > 0) {
+          const lossWarnings = insights
+            .filter((i: any) => i.insight_type === 'negative')
+            .slice(0, 3)
+            .map((i: any) => i.description || i.insight_text || '')
+            .filter(Boolean);
+          buyerContext = formatBuyerContextForPrompt(profile, lossWarnings);
+          console.log('Buyer context injected for:', buyerName);
+        }
+      } catch (e) {
+        console.log('Could not fetch buyer context:', e);
+      }
     }
     
     // Fetch evidence - use semantic search if enabled
@@ -672,7 +708,7 @@ export async function POST(request: NextRequest) {
     console.log('Question word limit:', questionWordLimit || 'None detected');
 
     // Generate initial answer
-    let answer = await generateResponse(questionText, evidence, tenderSector);
+    let answer = await generateResponse(questionText, evidence, tenderSector, buyerContext);
     console.log('Initial answer length:', answer.length);
 
     // Score it (pass evidence for hallucination checking)
