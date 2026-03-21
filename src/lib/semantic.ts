@@ -373,7 +373,14 @@ export async function hybridSearch(
         console.log(`SECTOR MATCH: ${evidenceSector} matches ${targetSector} - boosting evidence ${result.evidence._id}`);
       }
     }
-    
+
+    // QUALITY BOOST - prioritise records BidWrite can actually cite properly
+    // Mirrors the health score logic in the BidVault UI
+    if (result.evidence.value && /\d/.test(result.evidence.value)) keywordBoost += 0.15; // has quantified metric
+    if (result.evidence.client_name) keywordBoost += 0.08;                               // named client
+    if (result.evidence.source_text && result.evidence.source_text.length > 60) keywordBoost += 0.07; // substantial narrative
+    if (result.evidence.sector) keywordBoost += 0.05;                                    // sector tagged
+
     return {
       ...result,
       similarity: Math.min(1, result.similarity + keywordBoost) // Cap at 1.0
