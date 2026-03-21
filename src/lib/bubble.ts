@@ -511,55 +511,72 @@ export function extractCitationsFromAnswer(answerText: string): EvidenceCitation
 // Format answer with numbered superscript references instead of inline citations
 export function formatAnswerWithReferences(answerText: string): { cleanText: string; references: Array<{ number: number; title: string; evidenceId: string; category: string }> } {
   if (!answerText) return { cleanText: '', references: [] };
-  
+
   const references: Array<{ number: number; title: string; evidenceId: string; category: string }> = [];
   const seenIds = new Map<string, number>();
   let refNumber = 1;
-  
-  // Handle multiple formats:
-  // [Client Name | ID]
-  // [Client Name | ID & ID2]
-  // [Client Name | ID & ID2 & ID3]
-  // [1] simple numbered refs
-  let cleanText = answerText.replace(/\[([^\[\]]+?)\s*\|\s*([^\[\]]+)\]/g, (match, client, idsString) => {
+
+  // --- Step 1: Parse the evidence table at the bottom of the response ---
+  // Format: ID: 1234x5678 | Client Name | Key Fact  (one per line)
+  // Build a map: citation number (1-based order) → { id, client }
+  const evidenceMap = new Map<number, { id: string; client: string }>();
+  const tableRowRegex = /^ID:\s*(\d+x\d+)\s*\|\s*([^|\n]+?)\s*\|/gm;
+  let tableMatch;
+  let tableIndex = 1;
+  while ((tableMatch = tableRowRegex.exec(answerText)) !== null) {
+    evidenceMap.set(tableIndex, { id: tableMatch[1].trim(), client: tableMatch[2].trim() });
+    tableIndex++;
+  }
+
+  // --- Step 2: Strip the evidence table block from the text before rendering ---
+  // Find the first line that looks like an evidence table row and strip from there
+  const tableStartMatch = answerText.match(/\n(?:Evidence Citations?[:\s]*\n)?ID:\s*\d+x\d+\s*\|/);
+  const mainText = tableStartMatch
+    ? answerText.substring(0, answerText.indexOf(tableStartMatch[0]))
+    : answerText;
+
+  // --- Step 3: Handle old inline format [Client Name | ID] ---
+  let cleanText = mainText.replace(/\[([^\[\]]+?)\s*\|\s*([^\[\]]+)\]/g, (match, client, idsString) => {
     const trimmedClient = client.trim();
-    // Split by & to handle multiple IDs
     const ids = idsString.split(/\s*&\s*/).map((id: string) => id.replace(/^(?:ID:\s*)?/, '').trim()).filter((id: string) => /^\d+x\d+$/.test(id));
-    
-    if (ids.length === 0) return match; // No valid IDs found, keep original
-    
+
+    if (ids.length === 0) return match;
+
     const refNums: number[] = [];
-    
     ids.forEach((trimmedId: string) => {
-      // Check if we've seen this ID before
       if (seenIds.has(trimmedId)) {
         refNums.push(seenIds.get(trimmedId)!);
       } else {
-        // Add new reference
         seenIds.set(trimmedId, refNumber);
-        references.push({
-          number: refNumber,
-          title: trimmedClient,
-          evidenceId: trimmedId,
-          category: ''
-        });
+        references.push({ number: refNumber, title: trimmedClient, evidenceId: trimmedId, category: '' });
         refNums.push(refNumber);
         refNumber++;
       }
     });
-    
-    // Create clickable superscript refs
+
     return refNums.map(num => {
       const id = Array.from(seenIds.entries()).find(([_, n]) => n === num)?.[0] || '';
       return `<sup class="citation-ref cursor-pointer text-cyan-400 hover:text-cyan-300" data-evidence-id="${id}">[${num}]</sup>`;
     }).join('');
   });
-  
-  // Also handle plain [n] references that might already exist
+
+  // --- Step 4: Handle numbered [n] refs — wire to evidence table if available ---
   cleanText = cleanText.replace(/\[(\d+)\](?!<\/sup>)/g, (match, num) => {
+    const n = parseInt(num, 10);
+    const entry = evidenceMap.get(n);
+    if (entry) {
+      if (!seenIds.has(entry.id)) {
+        seenIds.set(entry.id, n);
+        references.push({ number: n, title: entry.client, evidenceId: entry.id, category: '' });
+      }
+      return `<sup class="citation-ref cursor-pointer text-cyan-400 hover:text-cyan-300" data-evidence-id="${entry.id}">[${num}]</sup>`;
+    }
     return `<sup class="citation-ref cursor-pointer text-cyan-400 hover:text-cyan-300">[${num}]</sup>`;
   });
-  
+
+  // Sort references by number
+  references.sort((a, b) => a.number - b.number);
+
   return { cleanText, references };
 }
 

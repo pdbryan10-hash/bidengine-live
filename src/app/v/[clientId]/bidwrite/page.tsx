@@ -815,19 +815,23 @@ function QuestionViewer({ question, onClose, onStatusChange, clientId }: { quest
                   <div>
                     <p className="text-xs text-gray-500 uppercase tracking-wider mb-2">Citations Used</p>
                     {(() => {
-                      const citations = extractCitationsFromAnswer(question.answer_text || '');
-                      return citations.length > 0 ? (
+                      const { references: refs } = formatAnswerWithReferences(question.answer_text || '');
+                      return refs.length > 0 ? (
                         <div className="space-y-2">
-                          {citations.map((cit, i) => (
-                            <div key={i} className="p-3 bg-white/5 rounded-lg border border-white/10">
+                          {refs.map((ref) => (
+                            <button
+                              key={ref.number}
+                              onClick={() => showEvidence(ref.evidenceId)}
+                              className="w-full p-3 bg-white/5 rounded-lg border border-white/10 hover:bg-white/10 transition-colors text-left"
+                            >
                               <div className="flex items-start justify-between gap-2">
                                 <div className="flex-1">
-                                  <p className="text-sm font-medium text-cyan-400">{cit.client}</p>
-                                  <p className="text-xs text-gray-500 font-mono mt-1">{cit.evidenceId}</p>
+                                  <p className="text-sm font-medium text-cyan-400">[{ref.number}] {ref.title}</p>
+                                  <p className="text-xs text-gray-500 font-mono mt-1">{ref.evidenceId}</p>
                                 </div>
                                 <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
                               </div>
-                            </div>
+                            </button>
                           ))}
                         </div>
                       ) : (
@@ -984,7 +988,7 @@ function QuestionViewer({ question, onClose, onStatusChange, clientId }: { quest
                     {evidencePopup.data.category && (
                       <div className="pt-3">
                         <a 
-                          href={`/v/${clientId}/bidvault/${encodeURIComponent(evidencePopup.data.category)}?record=${evidencePopup.id}`}
+                          href={`/v/${clientId}/bidvault/${encodeURIComponent(evidencePopup.data.category)}?highlight=${evidencePopup.id}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center gap-2 text-sm text-cyan-400 hover:text-cyan-300 transition-colors"
