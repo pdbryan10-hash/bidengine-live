@@ -69,6 +69,57 @@ export interface Project {
   Created_Date: string;
 }
 
+// BidLearn Types
+export interface BuyerProfile {
+  _id: string;
+  buyer_name: string;
+  client_id: string;
+  total_bids: number;
+  wins: number;
+  losses: number;
+  win_rate: number;
+  last_outcome?: string;
+  buyer_org_type?: string;
+  strong_categories?: string;
+  weak_categories?: string;
+  resonant_phrases?: string;
+  evaluator_priorities?: string;
+  profile_summary?: string;
+  profile_updated?: string;
+  'Created Date'?: string;
+}
+
+export interface OutcomeInsight {
+  _id: string;
+  client_id: string;
+  buyer_name: string;
+  insight_type: 'positive' | 'negative';
+  category: string;
+  insight_text: string;
+  resonant_phrase?: string;
+  score_awarded?: number | null;
+  score_max?: number | null;
+  improvement_note?: string;
+  'Created Date'?: string;
+}
+
+export interface BidOutcome {
+  _id: string;
+  client: string;
+  buyer_name: string;
+  tender_name: string;
+  outcome: 'win' | 'loss' | 'pending';
+  score?: number;
+  feedback?: string;
+  feedback_raw?: string;
+  contract_value?: number;
+  tender_sector?: string;
+  feedback_processed?: boolean;
+  notes?: string;
+  tender?: string;
+  'Created Date'?: string;
+}
+
 export interface ProjectCaseStudy {
   _id: string;
   case_study_id: string;
