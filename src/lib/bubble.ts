@@ -41,8 +41,9 @@ export async function checkIsAdmin(clerkUserId: string): Promise<boolean> {
   }
 }
 
-export async function fetchClientByClerkId(clerkUserId: string): Promise<{_id: string, client_id: number, client_name: string, subscription_status?: string, stripe_customer_id?: string, trial_end_date?: string, is_admin?: boolean} | null> {
+export async function fetchClientByClerkId(clerkUserId: string, clerkOrgId?: string): Promise<{_id: string, client_id: number, client_name: string, subscription_status?: string, stripe_customer_id?: string, trial_end_date?: string, is_admin?: boolean} | null> {
   try {
+    // 1. Try direct user ID match (account owner)
     const constraints = JSON.stringify([
       { key: 'Clerk_user_id', constraint_type: 'equals', value: clerkUserId }
     ]);
@@ -55,10 +56,28 @@ export async function fetchClientByClerkId(clerkUserId: string): Promise<{_id: s
       return null;
     }
     const data = await response.json();
-    console.log('Bubble response for clerk ID', clerkUserId, ':', JSON.stringify(data.response.results[0]));
     if (data.response.results.length > 0) {
       return data.response.results[0];
     }
+
+    // 2. Fallback: try org ID match (team member joining via Clerk organisation)
+    if (clerkOrgId) {
+      const orgConstraints = JSON.stringify([
+        { key: 'clerk_org_id', constraint_type: 'equals', value: clerkOrgId }
+      ]);
+      const orgResponse = await fetch(
+        `${BUBBLE_API_BASE}/Clients?constraints=${encodeURIComponent(orgConstraints)}`,
+        { headers: { 'Authorization': `Bearer ${BUBBLE_API_KEY}` } }
+      );
+      if (orgResponse.ok) {
+        const orgData = await orgResponse.json();
+        if (orgData.response.results.length > 0) {
+          console.log('Matched client via org ID', clerkOrgId);
+          return orgData.response.results[0];
+        }
+      }
+    }
+
     return null;
   } catch (error) {
     console.error('Failed to fetch client:', error);
@@ -265,45 +284,44 @@ export async function fetchEvidenceRecords(category: string | null, clientId: st
     const constraints: any[] = [
       { key: 'project_id', constraint_type: 'equals', value: clientId }
     ];
-
+    
+    // If category specified, filter by it
     if (category && category !== 'Project_Evidence') {
       constraints.push({ key: 'category', constraint_type: 'equals', value: category });
     }
-
+    
+    // Bubble API has a hard limit of 100 records per request - paginate
+    const allRecords: any[] = [];
+    let cursor = 0;
     const pageSize = 100;
-    const encodedConstraints = encodeURIComponent(JSON.stringify(constraints));
-    const baseUrl = `${BUBBLE_API_BASE}/Project_Evidence?constraints=${encodedConstraints}&limit=${pageSize}&sort_field=Created%20Date&descending=true&_t=${Date.now()}`;
-
-    // Fetch first page to get total remaining
-    const firstResponse = await fetch(`${baseUrl}&cursor=0`, {
-      headers: { 'Authorization': `Bearer ${BUBBLE_API_KEY}` },
-      cache: 'no-store',
-    });
-    if (!firstResponse.ok) return [];
-
-    const firstData = await firstResponse.json();
-    const firstPage = firstData.response?.results || [];
-    const remaining = firstData.response?.remaining || 0;
-
-    if (remaining === 0) return firstPage;
-
-    // Fire all remaining pages in parallel
-    const totalPages = Math.ceil(remaining / pageSize);
-    const pagePromises = Array.from({ length: totalPages }, (_, i) => {
-      const cursor = (i + 1) * pageSize;
-      if (cursor > 5000) return Promise.resolve([]);
-      return fetch(`${baseUrl}&cursor=${cursor}`, {
+    let hasMore = true;
+    
+    while (hasMore) {
+      const url = `${BUBBLE_API_BASE}/Project_Evidence?constraints=${encodeURIComponent(JSON.stringify(constraints))}&limit=${pageSize}&cursor=${cursor}&sort_field=Modified%20Date&descending=true`;
+      
+      const response = await fetch(url, {
         headers: { 'Authorization': `Bearer ${BUBBLE_API_KEY}` },
-        cache: 'no-store',
-      })
-        .then(r => r.ok ? r.json() : null)
-        .then(d => d?.response?.results || [])
-        .catch(() => []);
-    });
-
-    const pages = await Promise.all(pagePromises);
-    return [...firstPage, ...pages.flat()];
-
+      });
+      
+      if (!response.ok) break;
+      
+      const data = await response.json();
+      const pageRecords = data.response?.results || [];
+      const remaining = data.response?.remaining || 0;
+      
+      allRecords.push(...pageRecords);
+      
+      if (pageRecords.length < pageSize || remaining === 0) {
+        hasMore = false;
+      } else {
+        cursor += pageSize;
+      }
+      
+      // Safety limit
+      if (cursor > 5000) break;
+    }
+    
+    return allRecords;
   } catch (error) {
     console.error('Failed to fetch evidence records:', error);
     return [];
@@ -329,51 +347,79 @@ export interface EvidenceCounts {
 
 export async function fetchEvidenceCounts(clientId: string): Promise<EvidenceCounts> {
   const counts: EvidenceCounts = {};
-
+  console.log('fetchEvidenceCounts starting for client:', clientId);
+  
   try {
-    // Fetch one record per category in parallel - use remaining field for total count
-    await Promise.all(
-      EVIDENCE_CATEGORIES.map(async (cat) => {
-        try {
-          const constraints = JSON.stringify([
-            { key: 'project_id', constraint_type: 'equals', value: clientId },
-            { key: 'category', constraint_type: 'equals', value: cat.category }
-          ]);
-          const url = `${BUBBLE_API_BASE}/Project_Evidence?constraints=${encodeURIComponent(constraints)}&limit=1&sort_field=Created%20Date&descending=true&_t=${Date.now()}`;
-          const response = await fetch(url, {
-            headers: { 'Authorization': `Bearer ${BUBBLE_API_KEY}` },
-            cache: 'no-store',
-          });
-          if (!response.ok) {
-            counts[cat.category] = { label: cat.label, count: 0 };
-            return;
-          }
-          const data = await response.json();
-          const results = data.response?.results || [];
-          const remaining = data.response?.remaining || 0;
-          const latest = results[0] || null;
-          counts[cat.category] = {
-            label: cat.label,
-            count: results.length + remaining,
-            lastUploadDate: latest?.['Created Date'],
-            lastUploadTitle: latest?.title || '',
-            lastUploadNarrative: latest?.source_text || '',
-          };
-        } catch {
-          counts[cat.category] = { label: cat.label, count: 0 };
-        }
-      })
-    );
+    // Bubble API has a hard limit of 100 records per request
+    // We need to paginate to get all records
+    const allRecords: any[] = [];
+    let cursor = 0;
+    const pageSize = 100;
+    let hasMore = true;
+    
+    const constraints = JSON.stringify([
+      { key: 'project_id', constraint_type: 'equals', value: clientId }
+    ]);
+    
+    while (hasMore) {
+      const url = `${BUBBLE_API_BASE}/Project_Evidence?constraints=${encodeURIComponent(constraints)}&limit=${pageSize}&cursor=${cursor}&sort_field=Modified%20Date&descending=true`;
+      
+      const response = await fetch(url, {
+        headers: { 'Authorization': `Bearer ${BUBBLE_API_KEY}` },
+      });
+      
+      if (!response.ok) {
+        console.log('Failed to fetch evidence page:', response.status);
+        break;
+      }
+      
+      const data = await response.json();
+      const pageRecords = data.response?.results || [];
+      const remaining = data.response?.remaining || 0;
+      
+      allRecords.push(...pageRecords);
+      console.log(`Fetched page at cursor ${cursor}: ${pageRecords.length} records, ${remaining} remaining`);
+      
+      // Check if there are more records
+      if (pageRecords.length < pageSize || remaining === 0) {
+        hasMore = false;
+      } else {
+        cursor += pageSize;
+      }
+      
+      // Safety limit to prevent infinite loops
+      if (cursor > 5000) {
+        console.log('Safety limit reached at 5000 records');
+        break;
+      }
+    }
+    
+    console.log('Total evidence records fetched:', allRecords.length);
+    
+    // Group by category and count
+    EVIDENCE_CATEGORIES.forEach(cat => {
+      const categoryRecords = allRecords.filter((r: any) => r.category === cat.category);
+      const latest = categoryRecords[0]; // Already sorted by Modified Date desc
+      
+      counts[cat.category] = {
+        label: cat.label,
+        count: categoryRecords.length,
+        lastUploadDate: latest?.['Modified Date'] || latest?.['Created Date'],
+        lastUploadTitle: latest?.title || '',
+        lastUploadNarrative: latest?.source_text || ''
+      };
+    });
+    
   } catch (error) {
     console.error('Error fetching evidence counts:', error);
     EVIDENCE_CATEGORIES.forEach(cat => {
       counts[cat.category] = { label: cat.label, count: 0 };
     });
   }
-
+  
+  console.log('fetchEvidenceCounts done:', counts);
   return counts;
 }
-
 
 // ==================== BIDWRITE API ====================
 
@@ -511,72 +557,55 @@ export function extractCitationsFromAnswer(answerText: string): EvidenceCitation
 // Format answer with numbered superscript references instead of inline citations
 export function formatAnswerWithReferences(answerText: string): { cleanText: string; references: Array<{ number: number; title: string; evidenceId: string; category: string }> } {
   if (!answerText) return { cleanText: '', references: [] };
-
+  
   const references: Array<{ number: number; title: string; evidenceId: string; category: string }> = [];
   const seenIds = new Map<string, number>();
   let refNumber = 1;
-
-  // --- Step 1: Parse the evidence table at the bottom of the response ---
-  // Format: ID: 1234x5678 | Client Name | Key Fact  (one per line)
-  // Build a map: citation number (1-based order) → { id, client }
-  const evidenceMap = new Map<number, { id: string; client: string }>();
-  const tableRowRegex = /^ID:\s*(\d+x\d+)\s*\|\s*([^|\n]+?)\s*\|/gm;
-  let tableMatch;
-  let tableIndex = 1;
-  while ((tableMatch = tableRowRegex.exec(answerText)) !== null) {
-    evidenceMap.set(tableIndex, { id: tableMatch[1].trim(), client: tableMatch[2].trim() });
-    tableIndex++;
-  }
-
-  // --- Step 2: Strip the evidence table block from the text before rendering ---
-  // Find the first line that looks like an evidence table row and strip from there
-  const tableStartMatch = answerText.match(/\n(?:Evidence Citations?[:\s]*\n)?ID:\s*\d+x\d+\s*\|/);
-  const mainText = tableStartMatch
-    ? answerText.substring(0, answerText.indexOf(tableStartMatch[0]))
-    : answerText;
-
-  // --- Step 3: Handle old inline format [Client Name | ID] ---
-  let cleanText = mainText.replace(/\[([^\[\]]+?)\s*\|\s*([^\[\]]+)\]/g, (match, client, idsString) => {
+  
+  // Handle multiple formats:
+  // [Client Name | ID]
+  // [Client Name | ID & ID2]
+  // [Client Name | ID & ID2 & ID3]
+  // [1] simple numbered refs
+  let cleanText = answerText.replace(/\[([^\[\]]+?)\s*\|\s*([^\[\]]+)\]/g, (match, client, idsString) => {
     const trimmedClient = client.trim();
+    // Split by & to handle multiple IDs
     const ids = idsString.split(/\s*&\s*/).map((id: string) => id.replace(/^(?:ID:\s*)?/, '').trim()).filter((id: string) => /^\d+x\d+$/.test(id));
-
-    if (ids.length === 0) return match;
-
+    
+    if (ids.length === 0) return match; // No valid IDs found, keep original
+    
     const refNums: number[] = [];
+    
     ids.forEach((trimmedId: string) => {
+      // Check if we've seen this ID before
       if (seenIds.has(trimmedId)) {
         refNums.push(seenIds.get(trimmedId)!);
       } else {
+        // Add new reference
         seenIds.set(trimmedId, refNumber);
-        references.push({ number: refNumber, title: trimmedClient, evidenceId: trimmedId, category: '' });
+        references.push({
+          number: refNumber,
+          title: trimmedClient,
+          evidenceId: trimmedId,
+          category: ''
+        });
         refNums.push(refNumber);
         refNumber++;
       }
     });
-
+    
+    // Create clickable superscript refs
     return refNums.map(num => {
       const id = Array.from(seenIds.entries()).find(([_, n]) => n === num)?.[0] || '';
       return `<sup class="citation-ref cursor-pointer text-cyan-400 hover:text-cyan-300" data-evidence-id="${id}">[${num}]</sup>`;
     }).join('');
   });
-
-  // --- Step 4: Handle numbered [n] refs — wire to evidence table if available ---
+  
+  // Also handle plain [n] references that might already exist
   cleanText = cleanText.replace(/\[(\d+)\](?!<\/sup>)/g, (match, num) => {
-    const n = parseInt(num, 10);
-    const entry = evidenceMap.get(n);
-    if (entry) {
-      if (!seenIds.has(entry.id)) {
-        seenIds.set(entry.id, n);
-        references.push({ number: n, title: entry.client, evidenceId: entry.id, category: '' });
-      }
-      return `<sup class="citation-ref cursor-pointer text-cyan-400 hover:text-cyan-300" data-evidence-id="${entry.id}">[${num}]</sup>`;
-    }
     return `<sup class="citation-ref cursor-pointer text-cyan-400 hover:text-cyan-300">[${num}]</sup>`;
   });
-
-  // Sort references by number
-  references.sort((a, b) => a.number - b.number);
-
+  
   return { cleanText, references };
 }
 
@@ -621,7 +650,7 @@ export function parseFullEvaluation(evaluation: string): FullEvaluation {
 
   // Helper to extract section items - handles ## Section headers
   const extractSection = (sectionName: string): string[] => {
-    const regex = new RegExp(`## ${sectionName}[\\s\\S]*?\\n([\\s\\S]*?)(?=\\n---|\\n##|$)`, 'i');
+    const regex = new RegExp(`## ${sectionName}[\\s\\S]*?\\n([\\s\\S]*?)(?=\\n---|\n##|$)`, 'i');
     const match = evaluation.match(regex);
     if (!match) return [];
     return match[1]
@@ -827,6 +856,7 @@ export function parseFullEvaluation(evaluation: string): FullEvaluation {
 
   // If still no gaps found, try to extract from summary text
   if (gapAnalysis.mustFix.length === 0 && gapAnalysis.shouldFix.length === 0 && gapAnalysis.couldFix.length === 0) {
+    // Look for "minor gap", "gap in", "lacking", "missing" patterns in summary
     const gapPatterns = [
       /minor gap in ([^.;]+)/gi,
       /gap in demonstrating ([^.;]+)/gi,
@@ -849,6 +879,7 @@ export function parseFullEvaluation(evaluation: string): FullEvaluation {
       }
     });
     
+    // Also check for deduction reasons in summary
     const deductionPattern = /(?:minor )?deduction for ([^.;]+)/gi;
     let deductionMatch;
     while ((deductionMatch = deductionPattern.exec(summary)) !== null) {
@@ -856,6 +887,7 @@ export function parseFullEvaluation(evaluation: string): FullEvaluation {
       if (reason.length > 5) extractedGaps.push(reason);
     }
     
+    // Add unique gaps as couldFix
     const uniqueGaps = Array.from(new Set(extractedGaps));
     if (uniqueGaps.length > 0) {
       gapAnalysis.couldFix = uniqueGaps;
