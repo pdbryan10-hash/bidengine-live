@@ -52,8 +52,13 @@ export default function SetupPage() {
 
     fetchClientByClerkId(user.id, orgId).then(client => {
       if (client) {
+        if (user.passwordEnabled) {
+          // Returning member — already has a password, go straight to workspace
+          router.replace(`/v/${client._id}`);
+          return;
+        }
         setOrgClient(client);
-        setNeedsPassword(true); // always show password form for org members
+        setNeedsPassword(true);
       }
       setOrgCheckDone(true);
     });

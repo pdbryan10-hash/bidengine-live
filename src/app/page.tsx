@@ -10,28 +10,35 @@ export default function HomePage() {
   const router = useRouter();
   const { user, isLoaded } = useUser();
   const { userMemberships, isLoaded: orgsLoaded } = useOrganizationList({ userMemberships: true });
-  const [checking, setChecking] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (isLoaded && orgsLoaded && user && !checking) {
-      setChecking(true);
-      const orgId = userMemberships?.data?.[0]?.organization?.id;
-      fetchClientByClerkId(user.id, orgId).then(client => {
-        if (client) {
-          if (!user.passwordEnabled) {
-            // Org member with no password yet — intercept to create one
-            router.push('/setup');
-          } else {
-            router.push(`/v/${client._id}`);
-          }
-        } else {
-          // No client record found — send to setup (handles both new users and org members)
-          router.push('/setup');
-        }
-      });
+    if (!isLoaded || !orgsLoaded || !user) return;
+
+    const orgId = userMemberships?.data?.[0]?.organization?.id
+      ?? (user as any).organizationMemberships?.[0]?.organization?.id;
+
+    // If no orgId yet, retry up to 4x (memberships may not be synced instantly)
+    if (!orgId) {
+      if (retryCount < 4) {
+        const t = setTimeout(() => setRetryCount(c => c + 1), 1000);
+        return () => clearTimeout(t);
+      }
     }
-  }, [isLoaded, orgsLoaded, user, userMemberships, router, checking]);
+
+    fetchClientByClerkId(user.id, orgId).then(client => {
+      if (client) {
+        if (!user.passwordEnabled) {
+          router.push('/setup');
+        } else {
+          router.push(`/v/${client._id}`);
+        }
+      } else {
+        router.push('/setup');
+      }
+    });
+  }, [isLoaded, orgsLoaded, user, userMemberships, router, retryCount]);
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] flex flex-col relative overflow-hidden">
