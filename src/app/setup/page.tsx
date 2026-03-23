@@ -19,6 +19,7 @@ export default function SetupPage() {
   const [orgClient, setOrgClient] = useState<{ _id: string } | null>(null);
   const [needsPassword, setNeedsPassword] = useState(false);
   const [orgCheckDone, setOrgCheckDone] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
@@ -29,26 +30,36 @@ export default function SetupPage() {
     }
   }, [isLoaded, user, router]);
 
-  // If user belongs to an org that already has a workspace, intercept before entry
+  // If user belongs to an org that already has a workspace, intercept before entry.
+  // Retries up to 4x (6s total) because Clerk may not sync org memberships instantly
+  // for brand-new users who just accepted an invite.
   useEffect(() => {
     if (!isLoaded || !orgsLoaded || !user) return;
-    const orgId = userMemberships?.data?.[0]?.organization?.id;
+
+    const orgId = userMemberships?.data?.[0]?.organization?.id
+      ?? (user as any).organizationMemberships?.[0]?.organization?.id;
+
     if (!orgId) {
+      if (retryCount < 4) {
+        // Membership not loaded yet — wait and retry
+        const t = setTimeout(() => setRetryCount(c => c + 1), 1500);
+        return () => clearTimeout(t);
+      }
+      // Gave up — no org, show company name form
       setOrgCheckDone(true);
       return;
     }
+
     fetchClientByClerkId(user.id, orgId).then(client => {
       if (client) {
         setOrgClient(client);
-        // Only show password form if they don't have one yet
-        // (passwordEnabled=true means Clerk's sign-up already collected it)
         if (!user.passwordEnabled) {
           setNeedsPassword(true);
         }
       }
       setOrgCheckDone(true);
     });
-  }, [isLoaded, orgsLoaded, user, userMemberships]);
+  }, [isLoaded, orgsLoaded, user, userMemberships, retryCount]);
 
   const handleSetPassword = async () => {
     if (!user || !orgClient) return;
