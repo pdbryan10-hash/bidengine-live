@@ -1,7 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  serverExternalPackages: ['pdf-parse', 'mammoth'],
+  experimental: {
+    serverComponentsExternalPackages: ['pdf-parse', 'mammoth'],
+  },
   async headers() {
     return [
       {
@@ -20,7 +22,7 @@ const nextConfig = {
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob: https:",
               "font-src 'self' data: blob:",
-              "connect-src 'self' https://clerk.bidengine.co https://*.clerk.accounts.dev https://api.anthropic.com https://app.bidengine.co https://app.bidengine.co/version-test/api/1.1/wf https://app.bidengine.co/version-test/api/1.1/obj https://*.bubble.io https://api.openai.com",
+              "connect-src 'self' https://clerk.bidengine.co https://*.clerk.accounts.dev https://api.anthropic.com https://app.bidengine.co https://bidenginev1.bubbleapps.io https://*.bubble.io https://api.openai.com",
               "frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://vercel.live",
               "worker-src 'self' blob:",
             ].join('; '),
