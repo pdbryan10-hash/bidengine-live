@@ -14,6 +14,7 @@ import SubscriptionBanner from '@/components/SubscriptionBanner';
 import ClientBadge from '@/components/ClientBadge';
 import TenderOutcomeButton from '@/components/TenderOutcomeButton';
 import AdminClientSelector from '@/components/AdminClientSelector';
+import { UserButton } from '@clerk/nextjs';
 
 
 interface Tender {
@@ -317,6 +318,7 @@ export default function DashboardPage() {
             >
               Docs
             </a>
+            <UserButton afterSignOutUrl="/" />
             {isAdmin && (
               <Link 
                 href="/admin" 

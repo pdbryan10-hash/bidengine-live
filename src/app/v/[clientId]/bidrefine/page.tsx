@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import ClientBadge from '@/components/ClientBadge';
 import BidRefineButton from '@/components/BidRefineButton';
+import { UserButton } from '@clerk/nextjs';
 
 const BUBBLE_API_KEY = '33cb561a966f59ad7ea5e29a1906bf36';
 const BUBBLE_API_BASE = 'https://bidenginev1.bubbleapps.io/version-test/api/1.1/obj';
@@ -120,6 +121,7 @@ export default function BidRefinePage() {
               <RefreshCw size={18} className={`text-gray-400 ${loading ? 'animate-spin' : ''}`} />
             </button>
             <BidRefineButton tenderId="" tenderName="Manual Entry" clientId={clientId} questions={[]} onSuccess={() => setRefreshKey(k => k + 1)} />
+            <UserButton afterSignOutUrl="/" />
           </div>
         </div>
       </header>

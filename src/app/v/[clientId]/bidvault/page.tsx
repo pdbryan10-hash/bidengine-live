@@ -11,6 +11,7 @@ import {
   Zap, X, ChevronRight, Building2, Globe
 } from 'lucide-react';
 import { fetchEvidenceCounts, EvidenceCounts } from '@/lib/bubble';
+import { UserButton } from '@clerk/nextjs';
 import ClientBadge from '@/components/ClientBadge';
 
 const CATEGORY_ICONS: Record<string, any> = {
@@ -273,6 +274,7 @@ export default function BidVaultPage() {
             <button onClick={handleRefresh} className="p-2 bg-white/5 border border-white/10 rounded-lg hover:border-white/20 transition-colors">
               <RefreshCw size={18} className={`text-gray-400 ${loading ? 'animate-spin' : ''}`} />
             </button>
+            <UserButton afterSignOutUrl="/" />
           </div>
         </div>
       </header>

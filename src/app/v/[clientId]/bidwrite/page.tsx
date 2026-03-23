@@ -16,6 +16,7 @@ import ClientBadge from '@/components/ClientBadge';
 import TenderOutcomeButton from '@/components/TenderOutcomeButton';
 import BidRefineButton from '@/components/BidRefineButton';
 import BidRefineViewer from '@/components/BidRefineViewer';
+import { UserButton } from '@clerk/nextjs';
 
 const BUBBLE_API_KEY = '33cb561a966f59ad7ea5e29a1906bf36';
 const BUBBLE_API_BASE = 'https://bidenginev1.bubbleapps.io/version-test/api/1.1/obj';
@@ -1174,6 +1175,7 @@ export default function BidWritePage() {
               <div className="h-5 w-px bg-white/10" />
               <a href="https://hello.bidengine.co" target="_blank" className="text-gray-400 hover:text-white transition-colors text-sm">About</a>
               <a href="https://docs.bidengine.co" target="_blank" className="text-gray-400 hover:text-white transition-colors text-sm">Help</a>
+              <UserButton afterSignOutUrl="/" />
               <button
                 onClick={() => router.push(`/v/${clientId}`)}
                 className="flex items-center gap-2 px-3 py-1.5 bg-white/5 border border-white/10 text-white text-sm rounded-lg hover:bg-white/10 transition-colors"
