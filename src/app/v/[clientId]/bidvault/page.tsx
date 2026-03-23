@@ -140,7 +140,7 @@ export default function BidVaultPage() {
         .map(([client_name, recs]) => ({
           client_name,
           records: recs.sort((a, b) => (b['Created Date'] || '').localeCompare(a['Created Date'] || '')),
-          categories: [...new Set(recs.map(r => r.category || 'OTHER'))],
+          categories: Array.from(new Set(recs.map(r => r.category || 'OTHER'))),
         }))
         .sort((a, b) => b.records.length - a.records.length);
 
