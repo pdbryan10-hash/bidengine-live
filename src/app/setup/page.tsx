@@ -53,9 +53,7 @@ export default function SetupPage() {
     fetchClientByClerkId(user.id, orgId).then(client => {
       if (client) {
         setOrgClient(client);
-        if (!user.passwordEnabled) {
-          setNeedsPassword(true);
-        }
+        setNeedsPassword(true); // always show password form for org members
       }
       setOrgCheckDone(true);
     });
@@ -71,7 +69,13 @@ export default function SetupPage() {
       await user.updatePassword({ newPassword: password, signOutOfOtherSessions: false });
       router.replace(`/v/${orgClient._id}`);
     } catch (e: any) {
-      setError(e?.errors?.[0]?.message || 'Failed to set password');
+      const code = e?.errors?.[0]?.code ?? '';
+      if (code.includes('reverif') || code === 'session_reverification_required') {
+        // Already has a valid password (older session) — let them in
+        router.replace(`/v/${orgClient._id}`);
+      } else {
+        setError(e?.errors?.[0]?.message || 'Failed to set password');
+      }
     } finally {
       setLoading(false);
     }
