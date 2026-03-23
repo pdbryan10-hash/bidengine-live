@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useUser, useOrganizationList } from '@clerk/nextjs';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Building2, Lock } from 'lucide-react';
+import { Building2, Lock, CheckCircle } from 'lucide-react';
 import { fetchClientByClerkId } from '@/lib/bubble';
 
 export default function SetupPage() {
@@ -40,8 +40,11 @@ export default function SetupPage() {
     fetchClientByClerkId(user.id, orgId).then(client => {
       if (client) {
         setOrgClient(client);
-        // Always ask org members to set a password in our app
-        setNeedsPassword(true);
+        // Only show password form if they don't have one yet
+        // (passwordEnabled=true means Clerk's sign-up already collected it)
+        if (!user.passwordEnabled) {
+          setNeedsPassword(true);
+        }
       }
       setOrgCheckDone(true);
     });
@@ -165,6 +168,33 @@ export default function SetupPage() {
                   {loading ? 'Setting up...' : 'Set Password & Enter →'}
                 </button>
                 {error && <p className="text-red-400 text-center text-sm mt-4">{error}</p>}
+              </div>
+            </>
+          )}
+
+          {/* Org member — password set via Clerk sign-up, welcome them in */}
+          {orgClient && !needsPassword && (
+            <>
+              <div className="text-center mb-8">
+                <h1 className="text-3xl font-bold text-white mb-2">Welcome, {firstName}!</h1>
+                <p className="text-gray-400">You've been added to a BidEngine workspace</p>
+              </div>
+              <div className="bg-[#111] border border-white/10 rounded-2xl p-6">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-r from-cyan-500/20 to-purple-500/20 flex items-center justify-center">
+                    <CheckCircle size={20} className="text-cyan-400" />
+                  </div>
+                  <div>
+                    <h2 className="text-white font-semibold">Account ready</h2>
+                    <p className="text-gray-500 text-sm">{user?.primaryEmailAddress?.emailAddress}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => router.replace(`/v/${orgClient._id}`)}
+                  className="w-full py-4 bg-gradient-to-r from-cyan-500 to-purple-500 text-white font-semibold rounded-xl hover:opacity-90 transition-all text-lg"
+                >
+                  Enter Workspace →
+                </button>
               </div>
             </>
           )}
