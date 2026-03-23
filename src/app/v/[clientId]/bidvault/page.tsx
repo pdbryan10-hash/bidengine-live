@@ -2,7 +2,6 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState, useRef } from 'react';
-import { UserButton } from '@clerk/nextjs';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft, Database, Search, RefreshCw, Upload,
@@ -141,7 +140,7 @@ export default function BidVaultPage() {
         .map(([client_name, recs]) => ({
           client_name,
           records: recs.sort((a, b) => (b['Created Date'] || '').localeCompare(a['Created Date'] || '')),
-          categories: Array.from(new Set(recs.map(r => r.category || 'OTHER'))),
+          categories: [...new Set(recs.map(r => r.category || 'OTHER'))],
         }))
         .sort((a, b) => b.records.length - a.records.length);
 
@@ -274,7 +273,6 @@ export default function BidVaultPage() {
             <button onClick={handleRefresh} className="p-2 bg-white/5 border border-white/10 rounded-lg hover:border-white/20 transition-colors">
               <RefreshCw size={18} className={`text-gray-400 ${loading ? 'animate-spin' : ''}`} />
             </button>
-            <UserButton afterSignOutUrl="/" />
           </div>
         </div>
       </header>

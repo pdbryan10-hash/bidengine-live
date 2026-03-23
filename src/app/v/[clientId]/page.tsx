@@ -3,18 +3,17 @@
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { 
-  Upload, FileText, CheckCircle, Clock, Edit3, 
-  ChevronRight, TrendingUp, Database, PenTool, BarChart3
+import {
+  Upload, FileText, CheckCircle, Clock, Edit3,
+  ChevronRight, TrendingUp, Database, PenTool, BarChart3, GitCompare
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { UserButton, useUser } from '@clerk/nextjs';
 import { fetchTenders, fetchEvidenceCounts, fetchClientById, checkIsAdmin, EvidenceCounts } from '@/lib/bubble';
 import SubscriptionBanner from '@/components/SubscriptionBanner';
 import ClientBadge from '@/components/ClientBadge';
-import AdminClientSelector from '@/components/AdminClientSelector';
 import TenderOutcomeButton from '@/components/TenderOutcomeButton';
+import AdminClientSelector from '@/components/AdminClientSelector';
 
 
 interface Tender {
@@ -110,7 +109,6 @@ function getScoreGradient(score: number): string {
 export default function DashboardPage() {
   const params = useParams();
   const router = useRouter();
-  const { user } = useUser();
   const clientId = params.clientId as string;
   
   const [tenders, setTenders] = useState<TenderWithStats[]>([]);
@@ -164,9 +162,7 @@ export default function DashboardPage() {
     }
 
     async function checkAdmin() {
-      const email = user?.emailAddresses?.[0]?.emailAddress;
-      const adminEmails = ['paul@bidengine.co', 'paul@proofworks.co.uk'];
-      setIsAdmin(adminEmails.includes(email || ''));
+      setIsAdmin(true); // testbed: always admin
     }
     
     loadData();
@@ -181,7 +177,7 @@ export default function DashboardPage() {
     }, 30000);
 
     return () => clearInterval(interval);
-  }, [clientId, user?.id]);
+  }, [clientId]);
 
   const totalEvidence = Object.values(evidenceCounts).reduce((sum, t) => sum + t.count, 0);
   const categoriesWithData = Object.values(evidenceCounts).filter(t => t.count > 0).length;
@@ -245,6 +241,18 @@ export default function DashboardPage() {
       hoverBorder: 'hover:border-cyan-400/60',
       glowColor: 'cyan',
       icon: TrendingUp,
+      disabled: false
+    },
+    {
+      name: 'BidRefine',
+      description: 'Refinement Learning',
+      logo: '/bidrefine-logo.svg',
+      href: `/v/${clientId}/bidrefine`,
+      color: 'from-rose-500/20 to-pink-600/10',
+      borderColor: 'border-rose-500/30',
+      hoverBorder: 'hover:border-rose-400/60',
+      glowColor: 'rose',
+      icon: GitCompare,
       disabled: false
     }
   ];
@@ -324,7 +332,6 @@ export default function DashboardPage() {
               <Upload size={18} />
               Upload
             </button>
-            <UserButton afterSignOutUrl="/" />
           </div>
         </div>
       </header>
@@ -334,12 +341,13 @@ export default function DashboardPage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="grid grid-cols-5 gap-6 mb-10"
+          className="grid grid-cols-3 gap-6 mb-10"
         >
           {navModules.map((module, index) => {
-            const ringColor = module.glowColor === 'purple' ? '#a855f7' : 
-                              module.glowColor === 'blue' ? '#3b82f6' : 
-                              module.glowColor === 'emerald' ? '#00e07a' : '#f59e0b';
+            const ringColor = module.glowColor === 'purple' ? '#a855f7' :
+                              module.glowColor === 'blue' ? '#3b82f6' :
+                              module.glowColor === 'emerald' ? '#00e07a' :
+                              module.glowColor === 'rose' ? '#f43f5e' : '#f59e0b';
             return (
               <motion.div
                 key={module.name}

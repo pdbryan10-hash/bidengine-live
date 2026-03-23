@@ -351,9 +351,63 @@ A response with even one fabricated stat loses trust entirely in a real evaluati
 🟢 COULD FIX: [Polish items — or "None"]`;
 
 // Generate response using Claude
-async function generateResponse(questionText: string, evidence: string, targetSector?: string, buyerContext?: string): Promise<string> {
+async function fetchRefinementStyle(clientId: string): Promise<string | undefined> {
+  try {
+    const constraints = JSON.stringify([{ key: 'client', constraint_type: 'equals', value: clientId }]);
+    const res = await fetch(
+      `${BUBBLE_API_URL}/Refined_Draft?constraints=${encodeURIComponent(constraints)}&limit=10&sort_field=Created%20Date&descending=true`,
+      { headers: { 'Authorization': `Bearer ${BUBBLE_API_KEY}` } }
+    );
+    if (!res.ok) return undefined;
+    const data = await res.json();
+    const drafts = data.response?.results || [];
+    if (drafts.length === 0) return undefined;
+
+    // Aggregate style signals across all refinements
+    const allSignals: string[] = [];
+    const toneChanges: string[] = [];
+    let evidenceInserted = 0, quantAdded = 0, complianceStrengthened = 0;
+
+    for (const draft of drafts) {
+      try {
+        const p = JSON.parse(draft.patterns_extracted || '{}');
+        if (p.style_signals) allSignals.push(...p.style_signals);
+        if (p.tone_change && p.tone_change !== 'same') toneChanges.push(p.tone_change);
+        if (p.evidence_inserted) evidenceInserted++;
+        if (p.quantification_added) quantAdded++;
+        if (p.compliance_strengthened) complianceStrengthened++;
+      } catch { /* skip */ }
+    }
+
+    // Deduplicate signals
+    const uniqueSignals = Array.from(new Set(allSignals)).slice(0, 8);
+    if (uniqueSignals.length === 0) return undefined;
+
+    const lines = [
+      `This client has refined ${drafts.length} AI draft(s). Their edits reveal how they write winning bids:`,
+      '',
+      'STYLE SIGNALS (mirror these in your response):',
+      ...uniqueSignals.map(s => `- ${s}`),
+    ];
+    if (toneChanges.length > 0) {
+      const mostCommon = toneChanges.sort((a, b) =>
+        toneChanges.filter(v => v === b).length - toneChanges.filter(v => v === a).length)[0];
+      lines.push(`- Preferred tone: ${mostCommon}`);
+    }
+    const flags = [];
+    if (evidenceInserted > drafts.length / 2) flags.push('always inserts specific evidence/case studies');
+    if (quantAdded > drafts.length / 2) flags.push('always adds numbers and metrics');
+    if (complianceStrengthened > drafts.length / 2) flags.push('always strengthens compliance language');
+    if (flags.length > 0) lines.push(`- Consistent pattern: ${flags.join('; ')}`);
+
+    return lines.join('\n');
+  } catch { return undefined; }
+}
+
+async function generateResponse(questionText: string, evidence: string, targetSector?: string, buyerContext?: string, styleContext?: string): Promise<string> {
   const sectorContext = targetSector ? `\nTARGET SECTOR: ${targetSector}\nLead with evidence from ${targetSector} sector clients first.\n` : '';
   const buyerSection = buyerContext ? `\n\n=== BUYER INTELLIGENCE ===\n${buyerContext}\n=== END BUYER INTELLIGENCE ===\n` : '';
+  const styleSection = styleContext ? `\n\n=== WRITING STYLE ===\n${styleContext}\n=== END WRITING STYLE ===\n` : '';
   
   // Detect explicit exceed signals
   const exceedPatterns = [
@@ -421,7 +475,7 @@ The evaluator has given you ${wordLimit} words for a reason. Using only 60% sign
 
   console.log('Exceed detection:', hasExceedSignal ? 'EXPLICIT SIGNAL' : wordLimit && wordLimit >= 750 ? `HEADROOM (${wordLimit} words)` : 'NONE');
 
-  const prompt = `${BIDWRITE_PROMPT}\n\n---${sectorContext}${buyerSection}${exceedInstruction}\nQUESTION:\n${questionText}\n\nEVIDENCE LIBRARY (use only this evidence):\n${evidence}\n\nWrite the response:`;
+  const prompt = `${BIDWRITE_PROMPT}\n\n---${sectorContext}${styleSection}${buyerSection}${exceedInstruction}\nQUESTION:\n${questionText}\n\nEVIDENCE LIBRARY (use only this evidence):\n${evidence}\n\nWrite the response:`;
   
   const message = await callClaude(
     [{ role: 'user', content: prompt }],
@@ -666,27 +720,45 @@ export async function POST(request: NextRequest) {
       console.log('No tender ID found on question');
     }
 
-    // Fetch buyer intelligence from BidLearn if buyer name is known
+    // Fetch buyer intelligence + refinement style in parallel
     let buyerContext: string | undefined;
+    let styleContext: string | undefined;
+    const parallelFetches: Promise<void>[] = [];
+
     if (buyerName && client_id) {
-      try {
-        const [profile, insights] = await Promise.all([
-          fetchBuyerProfile(client_id, buyerName),
-          fetchOutcomeInsights(client_id, buyerName),
-        ]);
-        if (profile && profile.total_bids > 0) {
-          const lossWarnings = insights
-            .filter((i: any) => i.insight_type === 'negative')
-            .slice(0, 3)
-            .map((i: any) => i.description || i.insight_text || '')
-            .filter(Boolean);
-          buyerContext = formatBuyerContextForPrompt(profile, lossWarnings);
-          console.log('Buyer context injected for:', buyerName);
+      parallelFetches.push((async () => {
+        try {
+          const [profile, insights] = await Promise.all([
+            fetchBuyerProfile(client_id, buyerName),
+            fetchOutcomeInsights(client_id, buyerName),
+          ]);
+          if (profile && profile.total_bids > 0) {
+            const lossWarnings = insights
+              .filter((i: any) => i.insight_type === 'negative')
+              .slice(0, 3)
+              .map((i: any) => i.description || i.insight_text || '')
+              .filter(Boolean);
+            buyerContext = formatBuyerContextForPrompt(profile, lossWarnings);
+            console.log('Buyer context injected for:', buyerName);
+          }
+        } catch (e) {
+          console.log('Could not fetch buyer context:', e);
         }
-      } catch (e) {
-        console.log('Could not fetch buyer context:', e);
-      }
+      })());
     }
+
+    if (client_id) {
+      parallelFetches.push((async () => {
+        try {
+          styleContext = await fetchRefinementStyle(client_id);
+          if (styleContext) console.log('Refinement style injected from', styleContext.match(/refined (\d+)/)?.[1], 'drafts');
+        } catch (e) {
+          console.log('Could not fetch refinement style:', e);
+        }
+      })());
+    }
+
+    await Promise.all(parallelFetches);
     
     // Fetch evidence - use semantic search if enabled
     let evidence: string;
@@ -708,7 +780,7 @@ export async function POST(request: NextRequest) {
     console.log('Question word limit:', questionWordLimit || 'None detected');
 
     // Generate initial answer
-    let answer = await generateResponse(questionText, evidence, tenderSector, buyerContext);
+    let answer = await generateResponse(questionText, evidence, tenderSector, buyerContext, styleContext);
     console.log('Initial answer length:', answer.length);
 
     // Score it (pass evidence for hallucination checking)

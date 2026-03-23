@@ -9,12 +9,13 @@ import {
   AlertCircle, TrendingUp, X, BarChart3, AlertTriangle, Shield, PenTool, Info, ExternalLink
 } from 'lucide-react';
 import Image from 'next/image';
-import { UserButton } from '@clerk/nextjs';
 import { fetchTenders, fetchQuestions, updateQuestion, parseFullEvaluation, extractCitationsFromAnswer, formatAnswerWithReferences, getScoreLabel, getScoreColor, fetchEvidenceById } from '@/lib/bubble';
 import { TenderQuestion, Tender } from '@/types';
 import { ExportModal } from '@/components/ExportModal';
 import ClientBadge from '@/components/ClientBadge';
 import TenderOutcomeButton from '@/components/TenderOutcomeButton';
+import BidRefineButton from '@/components/BidRefineButton';
+import BidRefineViewer from '@/components/BidRefineViewer';
 
 const BUBBLE_API_KEY = '33cb561a966f59ad7ea5e29a1906bf36';
 const BUBBLE_API_BASE = 'https://bidenginev1.bubbleapps.io/version-test/api/1.1/obj';
@@ -1190,7 +1191,6 @@ export default function BidWritePage() {
                   Export
                 </button>
               )}
-              <UserButton afterSignOutUrl="/" />
             </div>
           </div>
         </div>
@@ -1432,6 +1432,17 @@ export default function BidWritePage() {
                   })()}
                   
                   <TenderOutcomeButton
+                    tenderId={selectedTender._id}
+                    tenderName={selectedTender.tender_name}
+                    clientId={clientId}
+                  />
+                  <BidRefineButton
+                    tenderId={selectedTender._id}
+                    tenderName={selectedTender.tender_name}
+                    clientId={clientId}
+                    questions={questions}
+                  />
+                  <BidRefineViewer
                     tenderId={selectedTender._id}
                     tenderName={selectedTender.tender_name}
                     clientId={clientId}
