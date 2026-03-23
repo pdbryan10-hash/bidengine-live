@@ -284,44 +284,41 @@ export async function fetchEvidenceRecords(category: string | null, clientId: st
     const constraints: any[] = [
       { key: 'project_id', constraint_type: 'equals', value: clientId }
     ];
-    
-    // If category specified, filter by it
     if (category && category !== 'Project_Evidence') {
       constraints.push({ key: 'category', constraint_type: 'equals', value: category });
     }
-    
-    // Bubble API has a hard limit of 100 records per request - paginate
-    const allRecords: any[] = [];
-    let cursor = 0;
+
     const pageSize = 100;
-    let hasMore = true;
-    
-    while (hasMore) {
-      const url = `${BUBBLE_API_BASE}/Project_Evidence?constraints=${encodeURIComponent(JSON.stringify(constraints))}&limit=${pageSize}&cursor=${cursor}&sort_field=Modified%20Date&descending=true`;
-      
-      const response = await fetch(url, {
-        headers: { 'Authorization': `Bearer ${BUBBLE_API_KEY}` },
-      });
-      
-      if (!response.ok) break;
-      
-      const data = await response.json();
-      const pageRecords = data.response?.results || [];
-      const remaining = data.response?.remaining || 0;
-      
-      allRecords.push(...pageRecords);
-      
-      if (pageRecords.length < pageSize || remaining === 0) {
-        hasMore = false;
-      } else {
-        cursor += pageSize;
-      }
-      
-      // Safety limit
-      if (cursor > 5000) break;
-    }
-    
-    return allRecords;
+    const baseUrl = `${BUBBLE_API_BASE}/Project_Evidence?constraints=${encodeURIComponent(JSON.stringify(constraints))}&limit=${pageSize}&sort_field=Modified%20Date&descending=true&_t=${Date.now()}`;
+
+    // Fetch first page to get total remaining count
+    const firstRes = await fetch(`${baseUrl}&cursor=0`, {
+      headers: { 'Authorization': `Bearer ${BUBBLE_API_KEY}` },
+      cache: 'no-store',
+    });
+    if (!firstRes.ok) return [];
+    const firstData = await firstRes.json();
+    const firstPage = firstData.response?.results || [];
+    const remaining = firstData.response?.remaining || 0;
+    if (remaining === 0) return firstPage;
+
+    // Fire all remaining pages in parallel
+    const totalPages = Math.ceil(remaining / pageSize);
+    const pages = await Promise.all(
+      Array.from({ length: totalPages }, (_, i) => {
+        const cursor = (i + 1) * pageSize;
+        if (cursor > 5000) return Promise.resolve([]);
+        return fetch(`${baseUrl}&cursor=${cursor}`, {
+          headers: { 'Authorization': `Bearer ${BUBBLE_API_KEY}` },
+          cache: 'no-store',
+        })
+          .then(r => r.ok ? r.json() : null)
+          .then(d => d?.response?.results || [])
+          .catch(() => []);
+      })
+    );
+
+    return [...firstPage, ...pages.flat()];
   } catch (error) {
     console.error('Failed to fetch evidence records:', error);
     return [];
@@ -347,77 +344,46 @@ export interface EvidenceCounts {
 
 export async function fetchEvidenceCounts(clientId: string): Promise<EvidenceCounts> {
   const counts: EvidenceCounts = {};
-  console.log('fetchEvidenceCounts starting for client:', clientId);
-  
   try {
-    // Bubble API has a hard limit of 100 records per request
-    // We need to paginate to get all records
-    const allRecords: any[] = [];
-    let cursor = 0;
-    const pageSize = 100;
-    let hasMore = true;
-    
-    const constraints = JSON.stringify([
-      { key: 'project_id', constraint_type: 'equals', value: clientId }
-    ]);
-    
-    while (hasMore) {
-      const url = `${BUBBLE_API_BASE}/Project_Evidence?constraints=${encodeURIComponent(constraints)}&limit=${pageSize}&cursor=${cursor}&sort_field=Modified%20Date&descending=true`;
-      
-      const response = await fetch(url, {
-        headers: { 'Authorization': `Bearer ${BUBBLE_API_KEY}` },
-      });
-      
-      if (!response.ok) {
-        console.log('Failed to fetch evidence page:', response.status);
-        break;
-      }
-      
-      const data = await response.json();
-      const pageRecords = data.response?.results || [];
-      const remaining = data.response?.remaining || 0;
-      
-      allRecords.push(...pageRecords);
-      console.log(`Fetched page at cursor ${cursor}: ${pageRecords.length} records, ${remaining} remaining`);
-      
-      // Check if there are more records
-      if (pageRecords.length < pageSize || remaining === 0) {
-        hasMore = false;
-      } else {
-        cursor += pageSize;
-      }
-      
-      // Safety limit to prevent infinite loops
-      if (cursor > 5000) {
-        console.log('Safety limit reached at 5000 records');
-        break;
-      }
-    }
-    
-    console.log('Total evidence records fetched:', allRecords.length);
-    
-    // Group by category and count
-    EVIDENCE_CATEGORIES.forEach(cat => {
-      const categoryRecords = allRecords.filter((r: any) => r.category === cat.category);
-      const latest = categoryRecords[0]; // Already sorted by Modified Date desc
-      
-      counts[cat.category] = {
-        label: cat.label,
-        count: categoryRecords.length,
-        lastUploadDate: latest?.['Modified Date'] || latest?.['Created Date'],
-        lastUploadTitle: latest?.title || '',
-        lastUploadNarrative: latest?.source_text || ''
-      };
-    });
-    
+    // Fire one request per category in parallel — limit=1 gives us remaining for the total count
+    await Promise.all(
+      EVIDENCE_CATEGORIES.map(async (cat) => {
+        try {
+          const constraints = JSON.stringify([
+            { key: 'project_id', constraint_type: 'equals', value: clientId },
+            { key: 'category', constraint_type: 'equals', value: cat.category }
+          ]);
+          const url = `${BUBBLE_API_BASE}/Project_Evidence?constraints=${encodeURIComponent(constraints)}&limit=1&sort_field=Created%20Date&descending=true&_t=${Date.now()}`;
+          const response = await fetch(url, {
+            headers: { 'Authorization': `Bearer ${BUBBLE_API_KEY}` },
+            cache: 'no-store',
+          });
+          if (!response.ok) {
+            counts[cat.category] = { label: cat.label, count: 0 };
+            return;
+          }
+          const data = await response.json();
+          const results = data.response?.results || [];
+          const remaining = data.response?.remaining || 0;
+          const latest = results[0] || null;
+          counts[cat.category] = {
+            label: cat.label,
+            count: results.length + remaining,
+            lastUploadDate: latest?.['Created Date'],
+            lastUploadTitle: latest?.title || '',
+            lastUploadNarrative: latest?.source_text || '',
+          };
+        } catch {
+          counts[cat.category] = { label: cat.label, count: 0 };
+        }
+      })
+    );
   } catch (error) {
     console.error('Error fetching evidence counts:', error);
     EVIDENCE_CATEGORIES.forEach(cat => {
       counts[cat.category] = { label: cat.label, count: 0 };
     });
   }
-  
-  console.log('fetchEvidenceCounts done:', counts);
   return counts;
 }
 
