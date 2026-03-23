@@ -29,11 +29,7 @@ export default function HomePage() {
 
     fetchClientByClerkId(user.id, orgId).then(client => {
       if (client) {
-        if (!user.passwordEnabled) {
-          router.push('/setup');
-        } else {
-          router.push(`/v/${client._id}`);
-        }
+        router.push(`/v/${client._id}`);
       } else {
         router.push('/setup');
       }
