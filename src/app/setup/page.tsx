@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useUser, useOrganization } from '@clerk/nextjs';
+import { useUser, useOrganizationList } from '@clerk/nextjs';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Building2 } from 'lucide-react';
@@ -9,7 +9,7 @@ import { fetchClientByClerkId } from '@/lib/bubble';
 
 export default function SetupPage() {
   const { user, isLoaded } = useUser();
-  const { organization, isLoaded: orgLoaded } = useOrganization();
+  const { userMemberships, isLoaded: orgsLoaded } = useOrganizationList({ userMemberships: true });
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -24,13 +24,13 @@ export default function SetupPage() {
 
   // If user belongs to an org that already has a workspace, skip setup and go straight in
   useEffect(() => {
-    if (!isLoaded || !orgLoaded || !user) return;
-    const orgId = organization?.id ?? (user.organizationMemberships?.[0]?.organization?.id as string | undefined);
+    if (!isLoaded || !orgsLoaded || !user) return;
+    const orgId = userMemberships?.data?.[0]?.organization?.id;
     if (!orgId) return;
     fetchClientByClerkId(user.id, orgId).then(client => {
       if (client) router.replace(`/v/${client._id}`);
     });
-  }, [isLoaded, orgLoaded, user, organization, router]);
+  }, [isLoaded, orgsLoaded, user, userMemberships, router]);
 
   const handleGetStarted = async () => {
     if (!user) {

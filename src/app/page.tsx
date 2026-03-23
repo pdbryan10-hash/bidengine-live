@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { SignedIn, SignedOut, UserButton, useUser, useOrganization } from '@clerk/nextjs';
+import { SignedIn, SignedOut, UserButton, useUser, useOrganizationList } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { fetchClientByClerkId } from '@/lib/bubble';
@@ -9,15 +9,14 @@ import { fetchClientByClerkId } from '@/lib/bubble';
 export default function HomePage() {
   const router = useRouter();
   const { user, isLoaded } = useUser();
-  const { organization, isLoaded: orgLoaded } = useOrganization();
+  const { userMemberships, isLoaded: orgsLoaded } = useOrganizationList({ userMemberships: true });
   const [checking, setChecking] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (isLoaded && orgLoaded && user && !checking) {
+    if (isLoaded && orgsLoaded && user && !checking) {
       setChecking(true);
-      // Use active org, or fall back to first membership org
-      const orgId = organization?.id ?? (user.organizationMemberships?.[0]?.organization?.id as string | undefined);
+      const orgId = userMemberships?.data?.[0]?.organization?.id;
       fetchClientByClerkId(user.id, orgId).then(client => {
         if (client) {
           const status = client.subscription_status || (client as any).Subscription_status;
