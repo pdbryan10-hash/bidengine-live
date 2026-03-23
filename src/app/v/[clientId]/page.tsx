@@ -197,18 +197,6 @@ export default function DashboardPage() {
       disabled: false
     },
     {
-      name: 'BidWrite',
-      description: 'Response Builder',
-      logo: '/bidwrite-logo.svg',
-      href: `/v/${clientId}/bidwrite`,
-      color: 'from-blue-500/20 to-blue-600/10',
-      borderColor: 'border-blue-500/30',
-      hoverBorder: 'hover:border-blue-400/60',
-      glowColor: 'blue',
-      icon: PenTool,
-      disabled: false
-    },
-    {
       name: 'BidGate',
       description: 'Go/No-Go Analysis',
       logo: '/bidgate-logo.svg',
@@ -218,6 +206,18 @@ export default function DashboardPage() {
       hoverBorder: 'hover:border-amber-400/60',
       glowColor: 'amber',
       icon: BarChart3,
+      disabled: false
+    },
+    {
+      name: 'BidWrite',
+      description: 'Response Builder',
+      logo: '/bidwrite-logo.svg',
+      href: `/v/${clientId}/bidwrite`,
+      color: 'from-blue-500/20 to-blue-600/10',
+      borderColor: 'border-blue-500/30',
+      hoverBorder: 'hover:border-blue-400/60',
+      glowColor: 'blue',
+      icon: PenTool,
       disabled: false
     },
     {
@@ -233,18 +233,6 @@ export default function DashboardPage() {
       disabled: false
     },
     {
-      name: 'BidLearn',
-      description: 'Outcome Intelligence',
-      logo: '/bidlearn-logo.svg',
-      href: `/v/${clientId}/bidlearn`,
-      color: 'from-cyan-500/20 to-teal-600/10',
-      borderColor: 'border-cyan-500/30',
-      hoverBorder: 'hover:border-cyan-400/60',
-      glowColor: 'cyan',
-      icon: TrendingUp,
-      disabled: false
-    },
-    {
       name: 'BidRefine',
       description: 'Refinement Learning',
       logo: '/bidrefine-logo.svg',
@@ -254,6 +242,18 @@ export default function DashboardPage() {
       hoverBorder: 'hover:border-rose-400/60',
       glowColor: 'rose',
       icon: GitCompare,
+      disabled: false
+    },
+    {
+      name: 'BidLearn',
+      description: 'Outcome Intelligence',
+      logo: '/bidlearn-logo.svg',
+      href: `/v/${clientId}/bidlearn`,
+      color: 'from-cyan-500/20 to-teal-600/10',
+      borderColor: 'border-cyan-500/30',
+      hoverBorder: 'hover:border-cyan-400/60',
+      glowColor: 'cyan',
+      icon: TrendingUp,
       disabled: false
     }
   ];
