@@ -19,20 +19,14 @@ export default function HomePage() {
       const orgId = userMemberships?.data?.[0]?.organization?.id;
       fetchClientByClerkId(user.id, orgId).then(client => {
         if (client) {
-          const status = client.subscription_status || (client as any).Subscription_status;
-          if (status === 'active' || status === 'trialing' || !status) {
-            router.push(`/v/${client._id}`);
-          } else if (status === 'expired' || status === 'past_due' || status === 'canceled') {
-            router.push('/subscribe');
-          } else {
-            router.push(`/v/${client._id}`);
-          }
+          router.push(`/v/${client._id}`);
         } else {
-          router.push('/subscribe');
+          // No client record found — send to setup (handles both new users and org members)
+          router.push('/setup');
         }
       });
     }
-  }, [isLoaded, user, router, checking]);
+  }, [isLoaded, orgsLoaded, user, userMemberships, router, checking]);
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] flex flex-col relative overflow-hidden">
