@@ -48,8 +48,8 @@ export default function SignInPage() {
           </div>
 
           {/* Clerk SignIn with dark theme */}
-          <SignIn 
-            afterSignInUrl="/"
+          <SignIn
+            fallbackRedirectUrl="/"
             appearance={{
               elements: {
                 rootBox: 'mx-auto w-full',
@@ -71,6 +71,9 @@ export default function SignInPage() {
                 formResendCodeLink: 'text-cyan-400',
                 alert: 'bg-red-500/10 border-red-500/20 text-red-400',
                 alertText: 'text-red-400',
+                alternativeMethodsBlockButton: 'bg-white/5 border border-white/10 text-gray-200 hover:bg-white/10 hover:border-white/20',
+                alternativeMethodsBlockButtonText: 'text-gray-200',
+                alternativeMethodsBlockButtonArrow: 'text-gray-400',
               },
               variables: {
                 colorPrimary: '#06b6d4',
@@ -79,6 +82,7 @@ export default function SignInPage() {
                 colorInputText: '#fff',
                 colorText: '#fff',
                 colorTextSecondary: '#9ca3af',
+                colorNeutral: '#9ca3af',
                 borderRadius: '0.75rem',
               }
             }}
