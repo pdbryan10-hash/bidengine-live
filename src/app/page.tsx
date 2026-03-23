@@ -19,7 +19,12 @@ export default function HomePage() {
       const orgId = userMemberships?.data?.[0]?.organization?.id;
       fetchClientByClerkId(user.id, orgId).then(client => {
         if (client) {
-          router.push(`/v/${client._id}`);
+          if (!user.passwordEnabled) {
+            // Org member with no password yet — intercept to create one
+            router.push('/setup');
+          } else {
+            router.push(`/v/${client._id}`);
+          }
         } else {
           // No client record found — send to setup (handles both new users and org members)
           router.push('/setup');
